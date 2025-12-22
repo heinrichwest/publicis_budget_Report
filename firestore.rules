@@ -42,6 +42,27 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
+    // Activity Plan collection
+    match /activityPlan/{activityId} {
+      // Allow all authenticated users to read
+      allow read: if request.auth != null;
+
+      // Allow admins to write any activity
+      allow write: if isAdmin();
+
+      // Allow managers to write activities for their assigned market
+      allow create, update: if request.auth != null &&
+                            exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+                            get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'manager' &&
+                            get(/databases/$(database)/documents/users/$(request.auth.uid)).data.assignedMarket == request.resource.data.market;
+
+      // Allow managers to delete activities for their assigned market
+      allow delete: if request.auth != null &&
+                    exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+                    get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'manager' &&
+                    get(/databases/$(database)/documents/users/$(request.auth.uid)).data.assignedMarket == resource.data.market;
+    }
+
     // Default rule: deny all other access
     match /{document=**} {
       allow read, write: if false;
