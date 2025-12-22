@@ -1,5 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { initializeAllData } from '../../utils/initializeData';
+import MarketsManager from './MarketsManager';
+import CurrencyRatesManager from './CurrencyRatesManager';
+import MediumsManager from './MediumsManager';
+import UserManagement from './UserManagement';
 
 const AdminTabs = () => {
   const [activeTab, setActiveTab] = useState('markets');
@@ -45,10 +49,10 @@ const AdminTabs = () => {
       </div>
 
       <div style={styles.content}>
-        {activeTab === 'markets' && <div>Markets Management - Coming soon</div>}
-        {activeTab === 'rates' && <div>Currency Rates Management - Coming soon</div>}
-        {activeTab === 'mediums' && <div>Mediums Management - Coming soon</div>}
-        {activeTab === 'users' && <div>User Management - Coming soon</div>}
+        {activeTab === 'markets' && <MarketsManager />}
+        {activeTab === 'rates' && <CurrencyRatesManager />}
+        {activeTab === 'mediums' && <MediumsManager />}
+        {activeTab === 'users' && <UserManagement />}
       </div>
     </div>
   );
