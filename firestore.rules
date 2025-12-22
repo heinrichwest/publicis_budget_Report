@@ -1,0 +1,50 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Helper function to check if user is admin
+    function isAdmin() {
+      return request.auth != null &&
+             exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    // Users collection rules
+    match /users/{userId} {
+      // Allow any authenticated user to read
+      allow read: if request.auth != null;
+
+      // Allow users to create their own document
+      allow create: if request.auth != null && request.auth.uid == userId;
+
+      // Allow users to update their own document OR admins to update any
+      allow update: if request.auth != null &&
+                    (request.auth.uid == userId || isAdmin());
+
+      // Only admins can delete users
+      allow delete: if isAdmin();
+    }
+
+    // Markets collection
+    match /markets/{marketId} {
+      allow read: if request.auth != null;
+      allow write: if isAdmin();
+    }
+
+    // Currency Rates collection
+    match /currencyRates/{rateId} {
+      allow read: if request.auth != null;
+      allow write: if isAdmin();
+    }
+
+    // Mediums collection
+    match /mediums/{mediumId} {
+      allow read: if request.auth != null;
+      allow write: if isAdmin();
+    }
+
+    // Default rule: deny all other access
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
