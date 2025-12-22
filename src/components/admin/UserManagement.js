@@ -1,11 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, query, where } from 'firebase/firestore';
+import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc } from 'firebase/firestore';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { db, auth } from '../../firebase/config';
 
 const UserManagement = () => {
   const [users, setUsers] = useState([]);
-  const [markets, setMarkets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [editingId, setEditingId] = useState(null);
   const [editData, setEditData] = useState({ email: '', role: '', assignedMarket: '' });
@@ -22,14 +21,6 @@ const UserManagement = () => {
     setLoading(true);
     setError('');
     try {
-      // Load markets
-      const marketsSnapshot = await getDocs(collection(db, 'markets'));
-      const marketsList = marketsSnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
-      setMarkets(marketsList);
-
       // Load users
       const usersSnapshot = await getDocs(collection(db, 'users'));
       const usersList = usersSnapshot.docs.map(doc => ({
@@ -56,11 +47,6 @@ const UserManagement = () => {
       setError('Role is required');
       return;
     }
-    if (newUser.role === 'manager' && !newUser.assignedMarket) {
-      setError('Managers must be assigned to a market');
-      return;
-    }
-
     setError('');
     setSuccess('');
     try {
@@ -78,7 +64,7 @@ const UserManagement = () => {
         createdAt: new Date().toISOString()
       };
 
-      if (newUser.role === 'manager') {
+      if (newUser.assignedMarket) {
         userData.assignedMarket = newUser.assignedMarket;
       }
 
@@ -121,11 +107,6 @@ const UserManagement = () => {
       setError('Role is required');
       return;
     }
-    if (editData.role === 'manager' && !editData.assignedMarket) {
-      setError('Managers must be assigned to a market');
-      return;
-    }
-
     setError('');
     setSuccess('');
     try {
@@ -136,9 +117,10 @@ const UserManagement = () => {
       };
 
       if (editData.role === 'manager') {
+        updateData.assignedMarket = null;
+      } else if (editData.assignedMarket) {
         updateData.assignedMarket = editData.assignedMarket;
       } else {
-        // Remove assignedMarket if role is not manager
         updateData.assignedMarket = null;
       }
 
@@ -236,7 +218,7 @@ const UserManagement = () => {
               <label style={styles.label}>Role</label>
               <select
                 value={newUser.role}
-                onChange={(e) => setNewUser({ ...newUser, role: e.target.value })}
+                onChange={(e) => setNewUser({ ...newUser, role: e.target.value, assignedMarket: '' })}
                 style={styles.select}
               >
                 <option value="">Select Role</option>
@@ -246,19 +228,8 @@ const UserManagement = () => {
             </div>
             {newUser.role === 'manager' && (
               <div style={styles.formGroup}>
-                <label style={styles.label}>Assigned Market</label>
-                <select
-                  value={newUser.assignedMarket}
-                  onChange={(e) => setNewUser({ ...newUser, assignedMarket: e.target.value })}
-                  style={styles.select}
-                >
-                  <option value="">Select Market</option>
-                  {markets.map((market) => (
-                    <option key={market.id} value={market.name}>
-                      {market.name}
-                    </option>
-                  ))}
-                </select>
+                <label style={styles.label}>Market Access</label>
+                <div style={styles.mutedText}>All markets (no assignment required)</div>
               </div>
             )}
           </div>
@@ -292,7 +263,7 @@ const UserManagement = () => {
                 <div style={styles.tableCell}>
                   <select
                     value={editData.role}
-                    onChange={(e) => setEditData({ ...editData, role: e.target.value })}
+                    onChange={(e) => setEditData({ ...editData, role: e.target.value, assignedMarket: '' })}
                     style={styles.select}
                   >
                     <option value="">Select Role</option>
@@ -302,18 +273,7 @@ const UserManagement = () => {
                 </div>
                 <div style={styles.tableCell}>
                   {editData.role === 'manager' ? (
-                    <select
-                      value={editData.assignedMarket}
-                      onChange={(e) => setEditData({ ...editData, assignedMarket: e.target.value })}
-                      style={styles.select}
-                    >
-                      <option value="">Select Market</option>
-                      {markets.map((market) => (
-                        <option key={market.id} value={market.name}>
-                          {market.name}
-                        </option>
-                      ))}
-                    </select>
+                    <span style={styles.mutedText}>All markets</span>
                   ) : (
                     <span style={styles.mutedText}>N/A</span>
                   )}
@@ -336,7 +296,9 @@ const UserManagement = () => {
                   </span>
                 </div>
                 <div style={styles.tableCell}>
-                  {user.assignedMarket || <span style={styles.mutedText}>N/A</span>}
+                  {user.role === 'manager'
+                    ? <span style={styles.mutedText}>All markets</span>
+                    : (user.assignedMarket || <span style={styles.mutedText}>N/A</span>)}
                 </div>
                 <div style={styles.tableCell}>
                   <button onClick={() => handleEdit(user)} style={styles.editButton}>
