@@ -2,7 +2,7 @@ import React from 'react';
 import { useAuth } from '../context/AuthContext';
 import { logout } from '../firebase/auth';
 import { useNavigate } from 'react-router-dom';
-import UserManagement from './UserManagement';
+import AdminTabs from './admin/AdminTabs';
 
 const Dashboard = () => {
   const { currentUser, userRole, isAdmin } = useAuth();
@@ -37,7 +37,7 @@ const Dashboard = () => {
       <main style={styles.main}>
         {isAdmin && (
           <div style={styles.adminSection}>
-            <UserManagement />
+            <AdminTabs />
           </div>
         )}
         {!isAdmin && (
