@@ -3,9 +3,10 @@ import { useAuth } from '../context/AuthContext';
 import { logout } from '../firebase/auth';
 import { useNavigate } from 'react-router-dom';
 import AdminTabs from './admin/AdminTabs';
+import ActivityPlan from './ActivityPlan';
 
 const Dashboard = () => {
-  const { currentUser, userRole, isAdmin } = useAuth();
+  const { currentUser, userRole, userMarket, isAdmin } = useAuth();
   const navigate = useNavigate();
 
   const handleLogout = async () => {
@@ -26,7 +27,7 @@ const Dashboard = () => {
         <div style={styles.userInfo}>
           <div style={styles.userDetails}>
             <span style={styles.userEmail}>{currentUser?.email}</span>
-            <span style={styles.userRole}>{userRole?.toUpperCase()}</span>
+            <span style={styles.userRole}>{userRole?.toUpperCase()}{userMarket && ` - ${userMarket}`}</span>
           </div>
           <button onClick={handleLogout} style={styles.logoutButton}>
             SIGN OUT
@@ -35,30 +36,12 @@ const Dashboard = () => {
       </header>
 
       <main style={styles.main}>
-        {isAdmin && (
+        {isAdmin ? (
           <div style={styles.adminSection}>
             <AdminTabs />
           </div>
-        )}
-        {!isAdmin && (
-          <div style={styles.content}>
-            <div style={styles.welcomeSection}>
-              <h2 style={styles.welcomeTitle}>Welcome to Your Dashboard</h2>
-              <p style={styles.welcomeText}>
-                Driving your growth through connected creativity
-              </p>
-            </div>
-            <div style={styles.infoCard}>
-              <div style={styles.infoItem}>
-                <span style={styles.infoLabel}>YOUR ROLE</span>
-                <span style={styles.infoValue}>{userRole}</span>
-              </div>
-              <div style={styles.infoItem}>
-                <span style={styles.infoLabel}>STATUS</span>
-                <span style={styles.infoValue}>Active</span>
-              </div>
-            </div>
-          </div>
+        ) : (
+          <ActivityPlan />
         )}
       </main>
     </div>

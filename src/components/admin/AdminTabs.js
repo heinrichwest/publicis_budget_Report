@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { initializeAllData } from '../../utils/initializeData';
 import { bulkAddUsers } from '../../utils/bulkAddUsers';
+import { importActivityData } from '../../utils/importActivityData';
 import MarketsManager from './MarketsManager';
 import CurrencyRatesManager from './CurrencyRatesManager';
 import MediumsManager from './MediumsManager';
@@ -10,6 +11,7 @@ const AdminTabs = () => {
   const [activeTab, setActiveTab] = useState('markets');
   const [initializing, setInitializing] = useState(false);
   const [addingUsers, setAddingUsers] = useState(false);
+  const [importingData, setImportingData] = useState(false);
 
   const handleInitialize = async () => {
     setInitializing(true);
@@ -49,6 +51,28 @@ const AdminTabs = () => {
     setAddingUsers(false);
   };
 
+  const handleImportActivity = async () => {
+    if (!window.confirm('This will import sample Activity Plan data. Continue?')) {
+      return;
+    }
+
+    setImportingData(true);
+    try {
+      const results = await importActivityData();
+      console.log('Import results:', results);
+
+      if (results.success) {
+        alert(`Successfully imported ${results.imported} activities!\nFailed: ${results.failed}\n\nCheck console for details.`);
+      } else {
+        alert(`Import failed: ${results.message}`);
+      }
+    } catch (error) {
+      alert('Error importing data: ' + error.message);
+      console.error('Import error:', error);
+    }
+    setImportingData(false);
+  };
+
   const tabs = [
     { id: 'markets', label: 'Markets' },
     { id: 'rates', label: 'Currency Rates' },
@@ -66,6 +90,9 @@ const AdminTabs = () => {
           </button>
           <button onClick={handleBulkAddUsers} disabled={addingUsers} style={styles.addUsersButton}>
             {addingUsers ? 'ADDING USERS...' : 'ADD 10 MARKET USERS'}
+          </button>
+          <button onClick={handleImportActivity} disabled={importingData} style={styles.importButton}>
+            {importingData ? 'IMPORTING...' : 'IMPORT ACTIVITY DATA'}
           </button>
         </div>
       </div>
@@ -99,9 +126,10 @@ const styles = {
   container: { backgroundColor: '#FFFFFF' },
   header: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', paddingBottom: '1.5rem', borderBottom: '2px solid #000000' },
   title: { fontSize: '28px', fontWeight: '700', color: '#000000', margin: 0 },
-  buttonGroup: { display: 'flex', gap: '1rem' },
+  buttonGroup: { display: 'flex', gap: '1rem', flexWrap: 'wrap' },
   initButton: { padding: '0.75rem 1.5rem', backgroundColor: '#666666', color: '#FFFFFF', border: 'none', borderRadius: '2px', cursor: 'pointer', fontSize: '12px', fontWeight: '600', letterSpacing: '0.5px' },
   addUsersButton: { padding: '0.75rem 1.5rem', backgroundColor: '#000000', color: '#FFFFFF', border: 'none', borderRadius: '2px', cursor: 'pointer', fontSize: '12px', fontWeight: '600', letterSpacing: '0.5px' },
+  importButton: { padding: '0.75rem 1.5rem', backgroundColor: '#333333', color: '#FFFFFF', border: 'none', borderRadius: '2px', cursor: 'pointer', fontSize: '12px', fontWeight: '600', letterSpacing: '0.5px' },
   tabsContainer: { display: 'flex', gap: '0.5rem', marginBottom: '2rem', borderBottom: '1px solid #EEEEEE' },
   tab: { padding: '1rem 2rem', backgroundColor: 'transparent', border: 'none', borderBottom: '2px solid transparent', cursor: 'pointer', fontSize: '14px', fontWeight: '600', color: '#666666', transition: 'all 0.2s' },
   activeTab: { color: '#000000', borderBottomColor: '#000000' },

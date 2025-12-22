@@ -49,14 +49,25 @@ export const logout = async () => {
   }
 };
 
-// Get user role from Firestore
-export const getUserRole = async (uid) => {
+// Get user data from Firestore
+export const getUserData = async (uid) => {
   try {
     const userDoc = await getDoc(doc(db, 'users', uid));
     if (userDoc.exists()) {
-      return userDoc.data().role;
+      return userDoc.data();
     }
     return null;
+  } catch (error) {
+    console.error('Error getting user data:', error);
+    return null;
+  }
+};
+
+// Get user role from Firestore
+export const getUserRole = async (uid) => {
+  try {
+    const userData = await getUserData(uid);
+    return userData ? userData.role : null;
   } catch (error) {
     console.error('Error getting user role:', error);
     return null;

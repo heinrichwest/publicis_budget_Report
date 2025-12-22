@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { onAuthStateChange, getUserRole } from '../firebase/auth';
+import { onAuthStateChange, getUserData } from '../firebase/auth';
 
 const AuthContext = createContext();
 
@@ -14,16 +14,19 @@ export const useAuth = () => {
 export const AuthProvider = ({ children }) => {
   const [currentUser, setCurrentUser] = useState(null);
   const [userRole, setUserRole] = useState(null);
+  const [userMarket, setUserMarket] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChange(async (user) => {
       setCurrentUser(user);
       if (user) {
-        const role = await getUserRole(user.uid);
-        setUserRole(role);
+        const userData = await getUserData(user.uid);
+        setUserRole(userData?.role || null);
+        setUserMarket(userData?.assignedMarket || null);
       } else {
         setUserRole(null);
+        setUserMarket(null);
       }
       setLoading(false);
     });
@@ -34,6 +37,7 @@ export const AuthProvider = ({ children }) => {
   const value = {
     currentUser,
     userRole,
+    userMarket,
     loading,
     isAdmin: userRole === 'admin',
     isManager: userRole === 'manager'
@@ -45,4 +49,3 @@ export const AuthProvider = ({ children }) => {
     </AuthContext.Provider>
   );
 };
-
