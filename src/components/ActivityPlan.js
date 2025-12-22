@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, query, where } from 'firebase/firestore';
 import { db } from '../firebase/config';
 import { useAuth } from '../context/AuthContext';
+import { getCurrencySymbol, formatCurrencyWithSymbol } from '../utils/currencyMap';
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
@@ -89,6 +90,15 @@ const ActivityPlan = () => {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2
     }).format(amount);
+  };
+
+  const formatLocalCurrency = (amount, market) => {
+    return formatCurrencyWithSymbol(amount, market);
+  };
+
+  const getCurrentCurrencySymbol = () => {
+    const market = getCurrentMarket();
+    return getCurrencySymbol(market);
   };
 
   const calculateTotalSpend = (monthlySpend) => {
@@ -244,6 +254,7 @@ const ActivityPlan = () => {
   const uniqueCampaigns = [...new Set(activities.map(a => a.campaign))];
   const currentMarket = getCurrentMarket();
   const conversionRate = getCurrentConversionRate();
+  const currencySymbol = getCurrentCurrencySymbol();
 
   if (loading) {
     return <div style={styles.loading}>Loading Activity Plan...</div>;
@@ -258,7 +269,7 @@ const ActivityPlan = () => {
             <h1 style={styles.marketTitle}>{currentMarket}</h1>
             <div style={styles.conversionRateDisplay}>
               <span style={styles.conversionLabel}>Conversion Rate:</span>
-              <span style={styles.conversionValue}>1 Local = {formatNumber(conversionRate)} ZAR</span>
+              <span style={styles.conversionValue}>1 {currencySymbol} = {formatNumber(conversionRate)} ZAR</span>
             </div>
           </div>
         </div>
@@ -283,8 +294,8 @@ const ActivityPlan = () => {
           <div style={styles.statValue}>{stats.count}</div>
         </div>
         <div style={styles.statCard}>
-          <div style={styles.statLabel}>Total Spend (Local)</div>
-          <div style={styles.statValue}>{formatNumber(stats.totalLocal)}</div>
+          <div style={styles.statLabel}>Total Spend ({currencySymbol})</div>
+          <div style={styles.statValue}>{currencySymbol} {formatNumber(stats.totalLocal)}</div>
         </div>
         <div style={styles.statCard}>
           <div style={styles.statLabel}>Total Spend (ZAR)</div>
@@ -351,7 +362,7 @@ const ActivityPlan = () => {
             </div>
           </div>
           <div style={styles.monthlyGrid}>
-            <label style={styles.monthlyLabel}>Monthly Spend (Local Currency)</label>
+            <label style={styles.monthlyLabel}>Monthly Spend ({currencySymbol})</label>
             <div style={styles.monthsContainer}>
               {MONTHS.map(month => (
                 <div key={month} style={styles.monthInput}>
@@ -368,7 +379,7 @@ const ActivityPlan = () => {
               ))}
             </div>
             <div style={styles.totalsRow}>
-              <strong>Total (Local): </strong>{formatNumber(calculateTotalSpend(formData.monthlySpend))}
+              <strong>Total ({currencySymbol}): </strong>{currencySymbol} {formatNumber(calculateTotalSpend(formData.monthlySpend))}
               <span style={styles.zarTotal}> | Total (ZAR): {formatCurrency(convertToZAR(calculateTotalSpend(formData.monthlySpend), userMarket || formData.market))}</span>
             </div>
           </div>
@@ -388,7 +399,7 @@ const ActivityPlan = () => {
                 <th style={styles.thSticky}>Business Unit</th>
                 <th style={styles.thSticky}>Campaign</th>
                 <th style={styles.thSticky}>Medium</th>
-                <th style={styles.thSticky}>Total (Local)</th>
+                <th style={styles.thSticky}>Total ({currencySymbol})</th>
                 <th style={styles.thSticky}>Total (ZAR)</th>
                 <th style={styles.thSticky}>Actions</th>
               </tr>
@@ -399,7 +410,7 @@ const ActivityPlan = () => {
                   <td style={styles.td}>{activity.businessUnit}</td>
                   <td style={styles.td}>{activity.campaign}</td>
                   <td style={styles.td}>{activity.medium}</td>
-                  <td style={styles.td}>{formatNumber(activity.totalSpendLocal || 0)}</td>
+                  <td style={styles.td}>{currencySymbol} {formatNumber(activity.totalSpendLocal || 0)}</td>
                   <td style={styles.td}>{formatCurrency(activity.totalSpendZAR || 0)}</td>
                   <td style={styles.td}>
                     <button onClick={() => handleEdit(activity)} style={styles.editButton}>EDIT</button>
@@ -439,7 +450,7 @@ const ActivityPlan = () => {
               </div>
             </div>
             <div style={styles.monthlyGrid}>
-              <label style={styles.monthlyLabel}>Monthly Spend (Local Currency)</label>
+              <label style={styles.monthlyLabel}>Monthly Spend ({currencySymbol})</label>
               <div style={styles.monthsContainer}>
                 {MONTHS.map(month => (
                   <div key={month} style={styles.monthInput}>
@@ -456,7 +467,7 @@ const ActivityPlan = () => {
                 ))}
               </div>
               <div style={styles.totalsRow}>
-                <strong>Total (Local): </strong>{formatNumber(calculateTotalSpend(formData.monthlySpend))}
+                <strong>Total ({currencySymbol}): </strong>{currencySymbol} {formatNumber(calculateTotalSpend(formData.monthlySpend))}
                 <span style={styles.zarTotal}> | Total (ZAR): {formatCurrency(convertToZAR(calculateTotalSpend(formData.monthlySpend), userMarket || formData.market))}</span>
               </div>
             </div>
