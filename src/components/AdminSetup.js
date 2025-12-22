@@ -42,12 +42,11 @@ const AdminSetup = () => {
       const userDoc = await getDoc(doc(db, 'users', user.uid));
       if (userDoc.exists()) {
         const data = userDoc.data();
-        setMessage('User: ' + user.email + '
-Role: ' + (data.role || 'No role set') + '
-UID: ' + user.uid);
+        const msg = 'User: ' + user.email + '\nRole: ' + (data.role || 'No role set') + '\nUID: ' + user.uid;
+        setMessage(msg);
       } else {
-        setMessage('User ' + user.email + ' exists in Auth but has no Firestore document.
-UID: ' + user.uid);
+        const msg = 'User ' + user.email + ' exists in Auth but has no Firestore document.\nUID: ' + user.uid;
+        setMessage(msg);
       }
     } catch (error) {
       setMessage('Error: ' + error.message);
