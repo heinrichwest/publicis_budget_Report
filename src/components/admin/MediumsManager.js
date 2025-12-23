@@ -146,7 +146,7 @@ const MediumsManager = () => {
         </div>
       )}
 
-      <div style={styles.grid}>
+      <div style={styles.list}>
         {mediums.map((medium) => (
           <div key={medium.id} style={styles.card}>
             {editingId === medium.id ? (
@@ -155,7 +155,7 @@ const MediumsManager = () => {
                   type="text"
                   value={editName}
                   onChange={(e) => setEditName(e.target.value)}
-                  style={styles.input}
+                  style={styles.rowInput}
                   onKeyPress={(e) => e.key === 'Enter' && handleUpdate(medium.id)}
                   autoFocus
                 />
@@ -242,24 +242,28 @@ const styles = {
     display: 'flex',
     gap: '1rem'
   },
-  grid: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
-    gap: '1.5rem'
+  list: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '0.75rem'
   },
   card: {
     backgroundColor: '#FFFFFF',
     border: '1px solid #EEEEEE',
     borderRadius: '2px',
-    padding: '1.5rem'
+    padding: '1rem 1.25rem',
+    display: 'flex',
+    alignItems: 'center'
   },
   cardContent: {
     display: 'flex',
-    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    width: '100%',
     gap: '1rem'
   },
   mediumName: {
-    fontSize: '18px',
+    fontSize: '16px',
     fontWeight: '600',
     margin: 0,
     color: '#000000'
@@ -270,7 +274,19 @@ const styles = {
   },
   editForm: {
     display: 'flex',
-    flexDirection: 'column'
+    alignItems: 'center',
+    gap: '1rem',
+    width: '100%'
+  },
+  rowInput: {
+    flex: 1,
+    minWidth: 0,
+    padding: '0.75rem',
+    border: '1px solid #EEEEEE',
+    borderRadius: '2px',
+    fontSize: '14px',
+    fontFamily: 'Montserrat, sans-serif',
+    boxSizing: 'border-box'
   },
   saveButton: {
     padding: '0.5rem 1rem',

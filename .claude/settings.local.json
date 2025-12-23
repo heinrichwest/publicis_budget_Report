@@ -14,7 +14,9 @@
       "Bash(node -e:*)",
       "Bash(firebase deploy:*)",
       "Bash(npm install:*)",
-      "Bash(node scripts/readExcel.js:*)"
+      "Bash(node scripts/readExcel.js:*)",
+      "Bash(node scripts/clearAndImportActivities.js:*)",
+      "Bash(node:*)"
     ],
     "deny": [],
     "ask": []

@@ -33,3 +33,4 @@ export const initializeAdmin = async () => {
 // 5. Create a document in the "users" collection with the user's UID
 // 6. Set the document fields: email: "Hein@speccon.co.za", role: "admin", createdAt: (current timestamp)
 
+

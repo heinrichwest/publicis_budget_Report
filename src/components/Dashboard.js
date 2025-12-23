@@ -1,13 +1,32 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { logout } from '../firebase/auth';
 import { useNavigate } from 'react-router-dom';
 import AdminTabs from './admin/AdminTabs';
+import AdminActivityPlanView from './admin/AdminActivityPlanView';
 import ActivityPlan from './ActivityPlan';
+import ManagerActivityOverview from './manager/ManagerActivityOverview';
+import { setUserAsAdmin } from '../utils/setAdminRole';
 
 const Dashboard = () => {
-  const { currentUser, userRole, userMarket, isAdmin } = useAuth();
+  const { currentUser, userRole, userMarket, isSystemAdmin, isMarketAdmin, isManager } = useAuth();
   const navigate = useNavigate();
+
+  // Temporary: Auto-set admin role for hein@specon.co.za
+  useEffect(() => {
+    if (currentUser?.email === 'hein@specon.co.za' && userRole && userRole !== 'systemAdmin') {
+      console.log(`Current role: ${userRole}, Setting system admin role for hein@specon.co.za...`);
+      setUserAsAdmin('hein@specon.co.za').then(result => {
+        console.log('Update result:', result);
+        if (result.success) {
+          alert('System admin role set! Reloading page...');
+          setTimeout(() => window.location.reload(), 500);
+        } else {
+          alert('Failed to set role: ' + result.message);
+        }
+      });
+    }
+  }, [currentUser, userRole]);
 
   const handleLogout = async () => {
     await logout();
@@ -35,15 +54,23 @@ const Dashboard = () => {
         </div>
       </header>
 
-      <main style={styles.main}>
-        {isAdmin ? (
+      {isSystemAdmin ? (
+        <main style={styles.main}>
           <div style={styles.adminSection}>
             <AdminTabs />
           </div>
-        ) : (
+        </main>
+      ) : isMarketAdmin ? (
+        <AdminActivityPlanView />
+      ) : isManager && !userMarket ? (
+        <main style={styles.main}>
+          <ManagerActivityOverview />
+        </main>
+      ) : (
+        <main style={styles.main}>
           <ActivityPlan />
-        )}
-      </main>
+        </main>
+      )}
     </div>
   );
 };
@@ -187,3 +214,4 @@ const styles = {
 };
 
 export default Dashboard;
+

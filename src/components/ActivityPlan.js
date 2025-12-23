@@ -59,7 +59,8 @@ const ActivityPlan = () => {
       });
       setCurrencyRates(ratesMap);
 
-      // Load activities (filter by market if user is a manager)
+      // Load activities (filter by market if user is a manager with assigned market)
+      // Managers without assigned market can see all markets
       let activitiesQuery = collection(db, 'activityPlan');
       if (userRole === 'manager' && userMarket) {
         activitiesQuery = query(activitiesQuery, where('market', '==', userMarket));

@@ -5,6 +5,7 @@ import { db, auth } from '../../firebase/config';
 
 const UserManagement = () => {
   const [users, setUsers] = useState([]);
+  const [markets, setMarkets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [editingId, setEditingId] = useState(null);
   const [editData, setEditData] = useState({ email: '', role: '', assignedMarket: '' });
@@ -28,6 +29,11 @@ const UserManagement = () => {
         ...doc.data()
       }));
       setUsers(usersList);
+
+      // Load markets
+      const marketsSnapshot = await getDocs(collection(db, 'markets'));
+      const marketsList = marketsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setMarkets(marketsList);
     } catch (err) {
       setError('Error loading data: ' + err.message);
     }
@@ -116,9 +122,7 @@ const UserManagement = () => {
         updatedAt: new Date().toISOString()
       };
 
-      if (editData.role === 'manager') {
-        updateData.assignedMarket = null;
-      } else if (editData.assignedMarket) {
+      if (editData.role === 'marketAdmin' && editData.assignedMarket) {
         updateData.assignedMarket = editData.assignedMarket;
       } else {
         updateData.assignedMarket = null;
@@ -163,12 +167,24 @@ const UserManagement = () => {
   };
 
   const getRoleBadgeStyle = (role) => {
-    if (role === 'admin') {
+    if (role === 'systemAdmin') {
       return { ...styles.badge, backgroundColor: '#000000', color: '#FFFFFF' };
+    } else if (role === 'marketAdmin') {
+      return { ...styles.badge, backgroundColor: '#FF6B00', color: '#FFFFFF' };
+    } else if (role === 'admin') {
+      return { ...styles.badge, backgroundColor: '#333333', color: '#FFFFFF' };
     } else if (role === 'manager') {
       return { ...styles.badge, backgroundColor: '#666666', color: '#FFFFFF' };
     }
     return { ...styles.badge, backgroundColor: '#EEEEEE', color: '#333333' };
+  };
+
+  const getRoleLabel = (role) => {
+    if (role === 'systemAdmin') return 'SYSTEM ADMIN';
+    if (role === 'marketAdmin') return 'MARKET ADMIN';
+    if (role === 'admin') return 'ADMIN';
+    if (role === 'manager') return 'MANAGER';
+    return 'N/A';
   };
 
   if (loading) {
@@ -222,14 +238,24 @@ const UserManagement = () => {
                 style={styles.select}
               >
                 <option value="">Select Role</option>
-                <option value="admin">Admin</option>
+                <option value="systemAdmin">System Admin</option>
+                <option value="marketAdmin">Market Admin</option>
                 <option value="manager">Manager</option>
               </select>
             </div>
-            {newUser.role === 'manager' && (
+            {newUser.role === 'marketAdmin' && (
               <div style={styles.formGroup}>
-                <label style={styles.label}>Market Access</label>
-                <div style={styles.mutedText}>All markets (no assignment required)</div>
+                <label style={styles.label}>Assigned Market</label>
+                <select
+                  value={newUser.assignedMarket}
+                  onChange={(e) => setNewUser({ ...newUser, assignedMarket: e.target.value })}
+                  style={styles.select}
+                >
+                  <option value="">Select Market</option>
+                  {markets.map(market => (
+                    <option key={market.id} value={market.name}>{market.name}</option>
+                  ))}
+                </select>
               </div>
             )}
           </div>
@@ -267,13 +293,23 @@ const UserManagement = () => {
                     style={styles.select}
                   >
                     <option value="">Select Role</option>
-                    <option value="admin">Admin</option>
+                    <option value="systemAdmin">System Admin</option>
+                    <option value="marketAdmin">Market Admin</option>
                     <option value="manager">Manager</option>
                   </select>
                 </div>
                 <div style={styles.tableCell}>
-                  {editData.role === 'manager' ? (
-                    <span style={styles.mutedText}>All markets</span>
+                  {editData.role === 'marketAdmin' ? (
+                    <select
+                      value={editData.assignedMarket}
+                      onChange={(e) => setEditData({ ...editData, assignedMarket: e.target.value })}
+                      style={styles.select}
+                    >
+                      <option value="">Select Market</option>
+                      {markets.map(market => (
+                        <option key={market.id} value={market.name}>{market.name}</option>
+                      ))}
+                    </select>
                   ) : (
                     <span style={styles.mutedText}>N/A</span>
                   )}
@@ -292,13 +328,11 @@ const UserManagement = () => {
                 <div style={styles.tableCell}>{user.email}</div>
                 <div style={styles.tableCell}>
                   <span style={getRoleBadgeStyle(user.role)}>
-                    {user.role ? user.role.toUpperCase() : 'N/A'}
+                    {getRoleLabel(user.role)}
                   </span>
                 </div>
                 <div style={styles.tableCell}>
-                  {user.role === 'manager'
-                    ? <span style={styles.mutedText}>All markets</span>
-                    : (user.assignedMarket || <span style={styles.mutedText}>N/A</span>)}
+                  {user.assignedMarket || <span style={styles.mutedText}>N/A</span>}
                 </div>
                 <div style={styles.tableCell}>
                   <button onClick={() => handleEdit(user)} style={styles.editButton}>

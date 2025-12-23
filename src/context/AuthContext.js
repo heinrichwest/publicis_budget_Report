@@ -39,7 +39,9 @@ export const AuthProvider = ({ children }) => {
     userRole,
     userMarket,
     loading,
-    isAdmin: userRole === 'admin',
+    isSystemAdmin: userRole === 'systemAdmin',
+    isMarketAdmin: userRole === 'marketAdmin',
+    isAdmin: userRole === 'admin' || userRole === 'systemAdmin' || userRole === 'marketAdmin',
     isManager: userRole === 'manager'
   };
 
@@ -49,3 +51,4 @@ export const AuthProvider = ({ children }) => {
     </AuthContext.Provider>
   );
 };
+
