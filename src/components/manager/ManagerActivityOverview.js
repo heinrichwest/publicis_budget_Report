@@ -118,6 +118,12 @@ const ManagerActivityOverview = () => {
     }, 0);
   };
 
+  const calculateYTDTotal = (reportingMonth) => {
+    return filteredActivities.reduce((sum, activity) => {
+      return sum + calculateYTD(activity.monthlySpend, reportingMonth);
+    }, 0);
+  };
+
   const getFilteredActivities = () => {
     return activities.filter(activity => {
       if (filters.market && activity.market !== filters.market) return false;
@@ -372,8 +378,8 @@ const ManagerActivityOverview = () => {
                 <td style={{...styles.totalLabel, left: '340px', width: '120px', minWidth: '120px', maxWidth: '120px'}}></td>
                 <td style={{...styles.grandTotal, left: '460px', width: '130px', minWidth: '130px', maxWidth: '130px'}}>{formatNumber(filteredActivities.reduce((sum, a) => sum + convertToZAR(calculateRowTotal(a.monthlySpend), a.market), 0))}</td>
                 <td style={{...styles.grandTotal, left: '590px', width: '130px', minWidth: '130px', maxWidth: '130px'}}>{formatNumber(calculateGrandTotal())}</td>
-                <td style={{...styles.grandTotal, left: '720px', width: '130px', minWidth: '130px', maxWidth: '130px'}}></td>
-                <td style={{...styles.grandTotal, left: '850px', width: '130px', minWidth: '130px', maxWidth: '130px'}}></td>
+                <td style={{...styles.grandTotal, left: '720px', width: '130px', minWidth: '130px', maxWidth: '130px'}}>{formatNumber(filteredActivities.reduce((sum, a) => sum + convertToZAR(calculateYTD(a.monthlySpend, reportingMonth), a.market), 0))}</td>
+                <td style={{...styles.grandTotal, left: '850px', width: '130px', minWidth: '130px', maxWidth: '130px'}}>{formatNumber(calculateYTDTotal(reportingMonth))}</td>
                 {MONTHS.map(month => (
                   <td key={month} style={styles.totalCell}>
                     {formatNumber(calculateColumnTotal(month))}
