@@ -3,16 +3,17 @@ import { collection, addDoc, query, where, getDocs } from 'firebase/firestore';
 import { auth, db } from '../firebase/config';
 
 const BULK_USERS = [
-  { market: 'Botswana', email: 'Botswana@test.co.za', username: 'Botswana', password: 'Speccon' },
-  { market: 'Ghana', email: 'Ghana@test.co.za', username: 'Ghana', password: 'Speccon' },
-  { market: 'Hub', email: 'Hub@test.co.za', username: 'Hub', password: 'Speccon' },
-  { market: 'Kenya', email: 'Kenya@test.co.za', username: 'Kenya', password: 'Speccon' },
-  { market: 'Mauritius', email: 'Mauritius@test.co.za', username: 'Mauritius', password: 'Speccon' },
-  { market: 'Mozambique', email: 'Mozambique@test.co.za', username: 'Mozambic', password: 'Speccon' },
-  { market: 'Seychelles', email: 'Seychelles@test.co.za', username: 'Seychelles', password: 'Speccon' },
-  { market: 'Tanzania', email: 'Tanzania@test.co.za', username: 'Tanzania', password: 'Speccon' },
-  { market: 'Uganda', email: 'Uganda@test.co.za', username: 'Uganda', password: 'Speccon' },
-  { market: 'Zambia', email: 'Zambia@test.co.za', username: 'Zambia', password: 'Speccon' }
+  { market: 'Botswana', email: 'Botswana@test.co.za', username: 'Botswana', password: 'Speccon', role: 'marketAdmin' },
+  { market: 'Ghana', email: 'Ghana@test.co.za', username: 'Ghana', password: 'Speccon', role: 'marketAdmin' },
+  { market: 'Hub', email: 'Hub@test.co.za', username: 'Hub', password: 'Speccon', role: 'marketAdmin' },
+  { market: 'Kenya', email: 'Kenya@test.co.za', username: 'Kenya', password: 'Speccon', role: 'marketAdmin' },
+  { market: 'Mauritius', email: 'Mauritius@test.co.za', username: 'Mauritius', password: 'Speccon', role: 'marketAdmin' },
+  { market: 'Mozambique', email: 'Mozambique@test.co.za', username: 'Mozambic', password: 'Speccon', role: 'marketAdmin' },
+  { market: 'Seychelles', email: 'Seychelles@test.co.za', username: 'Seychelles', password: 'Speccon', role: 'marketAdmin' },
+  { market: 'Tanzania', email: 'Tanzania@test.co.za', username: 'Tanzania', password: 'Speccon', role: 'marketAdmin' },
+  { market: 'Uganda', email: 'Uganda@test.co.za', username: 'Uganda', password: 'Speccon', role: 'marketAdmin' },
+  { market: 'Zambia', email: 'Zambia@test.co.za', username: 'Zambia', password: 'Speccon', role: 'marketAdmin' },
+  { market: null, email: 'manager@test.co.za', username: 'Manager', password: 'Speccon', role: 'manager' }
 ];
 
 export const bulkAddUsers = async () => {
@@ -48,13 +49,19 @@ export const bulkAddUsers = async () => {
       );
 
       // Create user document in Firestore
-      await addDoc(collection(db, 'users'), {
+      const userDoc = {
         email: userData.email,
         username: userData.username,
-        role: 'manager',
-        assignedMarket: userData.market,
+        role: userData.role || 'marketAdmin',
         createdAt: new Date().toISOString()
-      });
+      };
+
+      // Only add assignedMarket if it's not null (for market admins)
+      if (userData.market) {
+        userDoc.assignedMarket = userData.market;
+      }
+
+      await addDoc(collection(db, 'users'), userDoc);
 
       results.success.push({
         email: userData.email,
@@ -68,13 +75,19 @@ export const bulkAddUsers = async () => {
       if (error.code === 'auth/email-already-in-use') {
         // User exists in Auth, try to add to Firestore only
         try {
-          await addDoc(collection(db, 'users'), {
+          const userDoc = {
             email: userData.email,
             username: userData.username,
-            role: 'manager',
-            assignedMarket: userData.market,
+            role: userData.role || 'marketAdmin',
             createdAt: new Date().toISOString()
-          });
+          };
+
+          // Only add assignedMarket if it's not null (for market admins)
+          if (userData.market) {
+            userDoc.assignedMarket = userData.market;
+          }
+
+          await addDoc(collection(db, 'users'), userDoc);
           results.success.push({
             email: userData.email,
             market: userData.market,

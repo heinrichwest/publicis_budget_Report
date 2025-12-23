@@ -27,7 +27,7 @@ const AdminTabs = () => {
   };
 
   const handleBulkAddUsers = async () => {
-    if (!window.confirm('This will create 10 manager users (one for each market). You will be logged out during this process. Continue?')) {
+    if (!window.confirm('This will create 11 users: 10 market admins (one per market) and 1 general manager. You will be logged out during this process. Continue?')) {
       return;
     }
 
@@ -145,7 +145,7 @@ const AdminTabs = () => {
             {initializing ? 'INITIALIZING...' : 'INITIALIZE DATA'}
           </button>
           <button onClick={handleBulkAddUsers} disabled={addingUsers} style={styles.addUsersButton}>
-            {addingUsers ? 'ADDING USERS...' : 'ADD 10 MARKET USERS'}
+            {addingUsers ? 'ADDING USERS...' : 'ADD 11 USERS (10 ADMINS + 1 MANAGER)'}
           </button>
           <button onClick={handleImportActivity} disabled={importingData} style={styles.importButton}>
             {importingData ? 'IMPORTING...' : 'IMPORT ACTIVITY DATA'}
