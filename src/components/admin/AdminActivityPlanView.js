@@ -24,6 +24,8 @@ const AdminActivityPlanView = () => {
   const { userMarket } = useAuth();
   const [activities, setActivities] = useState([]);
   const [markets, setMarkets] = useState([]);
+  const [businessUnits, setBusinessUnits] = useState([]);
+  const [campaigns, setCampaigns] = useState([]);
   const [mediums, setMediums] = useState([]);
   const [currencyRates, setCurrencyRates] = useState({});
   const [selectedMarket, setSelectedMarket] = useState('');
@@ -36,6 +38,13 @@ const AdminActivityPlanView = () => {
   const [editingMetadata, setEditingMetadata] = useState(null);
   const [showAddForm, setShowAddForm] = useState(false);
   const [newActivity, setNewActivity] = useState({
+    businessUnit: '',
+    campaign: '',
+    medium: ''
+  });
+
+  // Filter state
+  const [filters, setFilters] = useState({
     businessUnit: '',
     campaign: '',
     medium: ''
@@ -84,6 +93,13 @@ const AdminActivityPlanView = () => {
         ...doc.data()
       }));
       setActivities(activitiesList);
+
+      // Extract unique business units and campaigns for filters
+      const uniqueBusinessUnits = [...new Set(activitiesList.map(a => a.businessUnit).filter(Boolean))].sort();
+      const uniqueCampaigns = [...new Set(activitiesList.map(a => a.campaign).filter(Boolean))].sort();
+      setBusinessUnits(uniqueBusinessUnits);
+      setCampaigns(uniqueCampaigns);
+
     } catch (err) {
       setError('Error loading data: ' + err.message);
     }
@@ -117,7 +133,13 @@ const AdminActivityPlanView = () => {
 
   const getFilteredActivities = () => {
     if (!selectedMarket) return [];
-    return activities.filter(a => a.market === selectedMarket);
+    return activities.filter(activity => {
+      if (activity.market !== selectedMarket) return false;
+      if (filters.businessUnit && activity.businessUnit !== filters.businessUnit) return false;
+      if (filters.campaign && activity.campaign !== filters.campaign) return false;
+      if (filters.medium && activity.medium !== filters.medium) return false;
+      return true;
+    });
   };
 
   const calculateYTD = (monthlySpend, reportingMonth) => {
@@ -315,10 +337,6 @@ const AdminActivityPlanView = () => {
     }
   };
 
-  // Get unique business units and campaigns from existing activities
-  const businessUnits = ['CIB', 'RBB', 'Brand'];
-  const campaigns = [...new Set(activities.map(a => a.campaign))].sort();
-
   const filteredActivities = getFilteredActivities();
   const currencySymbol = getCurrencySymbol(selectedMarket);
   const conversionRate = currencyRates[selectedMarket] || 1;
@@ -446,6 +464,57 @@ const AdminActivityPlanView = () => {
             <button onClick={() => setShowAddForm(!showAddForm)} style={styles.addButton}>
               {showAddForm ? 'CANCEL' : '+ ADD NEW ACTIVITY'}
             </button>
+          </div>
+
+          {/* Filters */}
+          <div style={styles.filtersBar}>
+            <div style={styles.filterGroup}>
+              <label style={styles.filterLabel}>Business Unit</label>
+              <select
+                value={filters.businessUnit}
+                onChange={(e) => setFilters({ ...filters, businessUnit: e.target.value })}
+                style={styles.filterSelect}
+              >
+                <option value="">All Units</option>
+                {businessUnits.map(bu => (
+                  <option key={bu} value={bu}>{bu}</option>
+                ))}
+              </select>
+            </div>
+            <div style={styles.filterGroup}>
+              <label style={styles.filterLabel}>Campaign</label>
+              <select
+                value={filters.campaign}
+                onChange={(e) => setFilters({ ...filters, campaign: e.target.value })}
+                style={styles.filterSelect}
+              >
+                <option value="">All Campaigns</option>
+                {campaigns.map(campaign => (
+                  <option key={campaign} value={campaign}>{campaign}</option>
+                ))}
+              </select>
+            </div>
+            <div style={styles.filterGroup}>
+              <label style={styles.filterLabel}>Medium</label>
+              <select
+                value={filters.medium}
+                onChange={(e) => setFilters({ ...filters, medium: e.target.value })}
+                style={styles.filterSelect}
+              >
+                <option value="">All Mediums</option>
+                {mediums.map(medium => (
+                  <option key={medium.id} value={medium.name}>{medium.name}</option>
+                ))}
+              </select>
+            </div>
+            {(filters.businessUnit || filters.campaign || filters.medium) && (
+              <button
+                onClick={() => setFilters({ businessUnit: '', campaign: '', medium: '' })}
+                style={styles.clearButton}
+              >
+                CLEAR FILTERS
+              </button>
+            )}
           </div>
 
       {showAddForm && (
@@ -908,6 +977,49 @@ const styles = {
     display: 'flex',
     justifyContent: 'flex-start',
     gap: '1rem'
+  },
+  filtersBar: {
+    display: 'flex',
+    gap: '1rem',
+    padding: '1.5rem 2rem',
+    backgroundColor: '#F9F9F9',
+    borderBottom: '1px solid #EEEEEE',
+    flexWrap: 'wrap',
+    alignItems: 'flex-end'
+  },
+  filterGroup: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '0.25rem'
+  },
+  filterLabel: {
+    fontSize: '10px',
+    fontWeight: '600',
+    color: '#666666',
+    letterSpacing: '0.5px',
+    textTransform: 'uppercase'
+  },
+  filterSelect: {
+    padding: '0.5rem',
+    fontSize: '13px',
+    fontWeight: '500',
+    border: '1px solid #CCCCCC',
+    borderRadius: '2px',
+    backgroundColor: '#FFFFFF',
+    minWidth: '150px',
+    outline: 'none'
+  },
+  clearButton: {
+    padding: '0.5rem 1rem',
+    backgroundColor: '#666666',
+    color: '#FFFFFF',
+    border: 'none',
+    borderRadius: '2px',
+    cursor: 'pointer',
+    fontSize: '11px',
+    fontWeight: '600',
+    letterSpacing: '0.5px',
+    height: 'fit-content'
   },
   addButton: {
     padding: '0.5rem 1rem',
