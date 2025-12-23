@@ -330,30 +330,25 @@ const AdminActivityPlanView = () => {
 
   return (
     <div style={styles.container}>
-      <div style={styles.header}>
-        <div style={styles.headerLeft}>
-          <h2 style={styles.title}>Activity Plan</h2>
-          <div style={styles.marketDisplay}>
-            <span style={styles.marketLabel}>Market:</span>
-            <span style={styles.marketName}>{selectedMarket}</span>
-          </div>
-        </div>
-        <div style={styles.headerRight}>
-          <div style={styles.reportingMonthSelector}>
-            <span style={styles.reportingLabel}>Reporting Month:</span>
+      {/* Compact Header */}
+      <div style={styles.compactHeader}>
+        <h2 style={styles.marketTitle}>{selectedMarket}</h2>
+        <div style={styles.headerControls}>
+          <div style={styles.controlItem}>
+            <span style={styles.controlLabel}>Reporting Month:</span>
             <select
               value={reportingMonth}
               onChange={(e) => setReportingMonth(e.target.value)}
-              style={styles.reportingSelect}
+              style={styles.controlSelect}
             >
               {MONTHS.map(month => (
                 <option key={month} value={month}>{month}</option>
               ))}
             </select>
           </div>
-          <div style={styles.conversionInfo}>
-            <span style={styles.conversionLabel}>Conversion Rate:</span>
-            <span style={styles.conversionValue}>1 {currencySymbol} = {formatRate(conversionRate)} ZAR</span>
+          <div style={styles.controlItem}>
+            <span style={styles.controlLabel}>Conversion:</span>
+            <span style={styles.controlValue}>1 {currencySymbol} = {formatRate(conversionRate)} ZAR</span>
           </div>
         </div>
       </div>
@@ -664,86 +659,51 @@ const styles = {
     fontSize: '16px',
     color: '#666666'
   },
-  header: {
+  compactHeader: {
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: '1.5rem 2rem',
+    padding: '1rem 2rem',
     borderBottom: '2px solid #000000',
-    flexShrink: 0
+    flexShrink: 0,
+    backgroundColor: '#FFFFFF'
   },
-  headerLeft: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '2rem'
-  },
-  headerRight: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '2rem'
-  },
-  title: {
-    fontSize: '24px',
+  marketTitle: {
+    fontSize: '20px',
     fontWeight: '700',
     color: '#000000',
     margin: 0
   },
-  marketDisplay: {
+  headerControls: {
     display: 'flex',
     alignItems: 'center',
-    gap: '0.5rem',
-    padding: '0.5rem 1rem',
-    backgroundColor: '#000000',
-    borderRadius: '2px'
+    gap: '2rem'
   },
-  marketLabel: {
+  controlItem: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '0.5rem'
+  },
+  controlLabel: {
     fontSize: '11px',
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: '#666666',
     letterSpacing: '0.5px',
     textTransform: 'uppercase'
   },
-  marketName: {
-    fontSize: '16px',
-    fontWeight: '700',
-    color: '#FFFFFF'
-  },
-  reportingMonthSelector: {
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'flex-end',
-    gap: '0.25rem'
-  },
-  reportingLabel: {
-    fontSize: '11px',
+  controlSelect: {
+    padding: '0.4rem 0.6rem',
+    fontSize: '13px',
     fontWeight: '600',
-    color: '#666666',
-    letterSpacing: '0.5px'
-  },
-  reportingSelect: {
-    padding: '0.5rem',
-    fontSize: '14px',
-    fontWeight: '600',
-    border: '2px solid #000000',
+    border: '1px solid #CCCCCC',
     borderRadius: '2px',
     backgroundColor: '#FFFFFF',
-    cursor: 'pointer'
+    cursor: 'pointer',
+    outline: 'none'
   },
-  conversionInfo: {
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'flex-end',
-    gap: '0.25rem'
-  },
-  conversionLabel: {
-    fontSize: '11px',
+  controlValue: {
+    fontSize: '13px',
     fontWeight: '600',
-    color: '#666666',
-    letterSpacing: '0.5px'
-  },
-  conversionValue: {
-    fontSize: '14px',
-    fontWeight: '700',
     color: '#000000'
   },
   tabsContainer: {
