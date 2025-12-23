@@ -63,9 +63,7 @@ const Dashboard = () => {
       ) : isMarketAdmin ? (
         <AdminActivityPlanView />
       ) : isManager && !userMarket ? (
-        <main style={styles.main}>
-          <ManagerActivityOverview />
-        </main>
+        <ManagerActivityOverview />
       ) : (
         <main style={styles.main}>
           <ActivityPlan />
