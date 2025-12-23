@@ -1,5 +1,5 @@
 import { createUserWithEmailAndPassword } from 'firebase/auth';
-import { collection, addDoc, query, where, getDocs } from 'firebase/firestore';
+import { collection, doc, setDoc, query, where, getDocs } from 'firebase/firestore';
 import { auth, db } from '../firebase/config';
 
 const BULK_USERS = [
@@ -48,7 +48,9 @@ export const bulkAddUsers = async () => {
         userData.password
       );
 
-      // Create user document in Firestore
+      const uid = userCredential.user.uid;
+
+      // Create user document in Firestore using UID as document ID
       const userDoc = {
         email: userData.email,
         username: userData.username,
@@ -61,7 +63,7 @@ export const bulkAddUsers = async () => {
         userDoc.assignedMarket = userData.market;
       }
 
-      await addDoc(collection(db, 'users'), userDoc);
+      await setDoc(doc(db, 'users', uid), userDoc);
 
       results.success.push({
         email: userData.email,
@@ -73,36 +75,15 @@ export const bulkAddUsers = async () => {
 
     } catch (error) {
       if (error.code === 'auth/email-already-in-use') {
-        // User exists in Auth, try to add to Firestore only
-        try {
-          const userDoc = {
-            email: userData.email,
-            username: userData.username,
-            role: userData.role || 'marketAdmin',
-            createdAt: new Date().toISOString()
-          };
-
-          // Only add assignedMarket if it's not null (for market admins)
-          if (userData.market) {
-            userDoc.assignedMarket = userData.market;
-          }
-
-          await addDoc(collection(db, 'users'), userDoc);
-          results.success.push({
-            email: userData.email,
-            market: userData.market,
-            note: 'Added to Firestore (already existed in Auth)'
-          });
-        } catch (firestoreError) {
-          results.failed.push({
-            email: userData.email,
-            error: firestoreError.message
-          });
-        }
+        results.skipped.push({
+          email: userData.email,
+          reason: 'Email already in use in Firebase Auth'
+        });
       } else {
         results.failed.push({
           email: userData.email,
-          error: error.message
+          error: error.message,
+          code: error.code
         });
       }
     }
