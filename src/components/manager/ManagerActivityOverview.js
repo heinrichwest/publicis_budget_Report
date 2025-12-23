@@ -355,10 +355,10 @@ const ManagerActivityOverview = () => {
               <th style={{...styles.thFixed, left: '100px', width: '80px', minWidth: '80px', maxWidth: '80px', whiteSpace: 'normal', lineHeight: '1.2'}}>Business Unit</th>
               <th style={{...styles.thFixed, left: '180px', width: '160px', minWidth: '160px', maxWidth: '160px'}}>Campaign</th>
               <th style={{...styles.thFixed, left: '340px', width: '120px', minWidth: '120px', maxWidth: '120px'}}>Medium</th>
-              <th style={{...styles.thTotal, left: '460px', width: '100px', minWidth: '100px', maxWidth: '100px'}}>Total (ZAR)</th>
-              <th style={{...styles.thTotal, left: '560px', width: '100px', minWidth: '100px', maxWidth: '100px'}}>Total (Local)</th>
-              <th style={{...styles.thTotal, left: '660px', width: '100px', minWidth: '100px', maxWidth: '100px'}}>YTD (ZAR)</th>
-              <th style={{...styles.thTotal, left: '760px', width: '100px', minWidth: '100px', maxWidth: '100px'}}>YTD (Local)</th>
+              <th style={{...styles.thTotal, left: '460px', width: '130px', minWidth: '130px', maxWidth: '130px'}}>Total (ZAR)</th>
+              <th style={{...styles.thTotal, left: '590px', width: '130px', minWidth: '130px', maxWidth: '130px'}}>Total (Local)</th>
+              <th style={{...styles.thTotal, left: '720px', width: '130px', minWidth: '130px', maxWidth: '130px'}}>YTD (ZAR)</th>
+              <th style={{...styles.thTotal, left: '850px', width: '130px', minWidth: '130px', maxWidth: '130px'}}>YTD (Local)</th>
               {MONTHS.map(month => (
                 <th key={month} style={styles.th}>{month}</th>
               ))}
@@ -382,10 +382,10 @@ const ManagerActivityOverview = () => {
                     <td style={{...styles.tdFixed, ...styles.tdSmallText, left: '340px', width: '120px', minWidth: '120px', maxWidth: '120px'}}>
                       {activity.medium}
                     </td>
-                    <td style={{...styles.tdTotalCell, left: '460px', width: '100px', minWidth: '100px', maxWidth: '100px'}}>{formatNumber(totalZAR)}</td>
-                    <td style={{...styles.tdTotalCell, left: '560px', width: '100px', minWidth: '100px', maxWidth: '100px'}}>{formatNumber(totalLocal)}</td>
-                    <td style={{...styles.tdTotalCell, left: '660px', width: '100px', minWidth: '100px', maxWidth: '100px'}}>{formatNumber(convertToZAR(calculateYTD(activity.monthlySpend, reportingMonth), activity.market))}</td>
-                    <td style={{...styles.tdTotalCell, left: '760px', width: '100px', minWidth: '100px', maxWidth: '100px'}}>{formatNumber(calculateYTD(activity.monthlySpend, reportingMonth))}</td>
+                    <td style={{...styles.tdTotalCell, left: '460px', width: '130px', minWidth: '130px', maxWidth: '130px'}}>{formatNumber(totalZAR)}</td>
+                    <td style={{...styles.tdTotalCell, left: '590px', width: '130px', minWidth: '130px', maxWidth: '130px'}}>{formatNumber(totalLocal)}</td>
+                    <td style={{...styles.tdTotalCell, left: '720px', width: '130px', minWidth: '130px', maxWidth: '130px'}}>{formatNumber(convertToZAR(calculateYTD(activity.monthlySpend, reportingMonth), activity.market))}</td>
+                    <td style={{...styles.tdTotalCell, left: '850px', width: '130px', minWidth: '130px', maxWidth: '130px'}}>{formatNumber(calculateYTD(activity.monthlySpend, reportingMonth))}</td>
                     {MONTHS.map(month => {
                       const value = activity.monthlySpend?.[month] || 0;
 
@@ -405,10 +405,10 @@ const ManagerActivityOverview = () => {
                 <td style={{...styles.totalLabel, left: '100px', width: '80px', minWidth: '80px', maxWidth: '80px'}}></td>
                 <td style={{...styles.totalLabel, left: '180px', width: '160px', minWidth: '160px', maxWidth: '160px'}}></td>
                 <td style={{...styles.totalLabel, left: '340px', width: '120px', minWidth: '120px', maxWidth: '120px'}}></td>
-                <td style={{...styles.grandTotal, left: '460px', width: '100px', minWidth: '100px', maxWidth: '100px'}}>{formatNumber(filteredActivities.reduce((sum, a) => sum + convertToZAR(calculateRowTotal(a.monthlySpend), a.market), 0))}</td>
-                <td style={{...styles.grandTotal, left: '560px', width: '100px', minWidth: '100px', maxWidth: '100px'}}>{formatNumber(calculateGrandTotal())}</td>
-                <td style={{...styles.grandTotal, left: '660px', width: '100px', minWidth: '100px', maxWidth: '100px'}}></td>
-                <td style={{...styles.grandTotal, left: '760px', width: '100px', minWidth: '100px', maxWidth: '100px'}}></td>
+                <td style={{...styles.grandTotal, left: '460px', width: '130px', minWidth: '130px', maxWidth: '130px'}}>{formatNumber(filteredActivities.reduce((sum, a) => sum + convertToZAR(calculateRowTotal(a.monthlySpend), a.market), 0))}</td>
+                <td style={{...styles.grandTotal, left: '590px', width: '130px', minWidth: '130px', maxWidth: '130px'}}>{formatNumber(calculateGrandTotal())}</td>
+                <td style={{...styles.grandTotal, left: '720px', width: '130px', minWidth: '130px', maxWidth: '130px'}}></td>
+                <td style={{...styles.grandTotal, left: '850px', width: '130px', minWidth: '130px', maxWidth: '130px'}}></td>
                 {MONTHS.map(month => (
                   <td key={month} style={styles.totalCell}>
                     {formatNumber(calculateColumnTotal(month))}
@@ -688,9 +688,9 @@ const styles = {
     padding: '0.75rem 0.5rem',
     borderRight: '1px solid #EEEEEE',
     borderBottom: '2px solid #DDDDDD',
-    minWidth: '80px',
-    width: '80px',
-    maxWidth: '80px',
+    minWidth: '110px',
+    width: '110px',
+    maxWidth: '110px',
     zIndex: 2
   },
   tr: {
@@ -734,9 +734,9 @@ const styles = {
     textAlign: 'right',
     borderRight: '1px solid #EEEEEE',
     borderBottom: '1px solid #EEEEEE',
-    minWidth: '80px',
-    width: '80px',
-    maxWidth: '80px',
+    minWidth: '110px',
+    width: '110px',
+    maxWidth: '110px',
     fontSize: '12px'
   },
   cellValue: {
