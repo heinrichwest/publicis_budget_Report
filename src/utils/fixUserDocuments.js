@@ -3,16 +3,16 @@ import { db, auth } from '../firebase/config';
 import { signInWithEmailAndPassword, signOut } from 'firebase/auth';
 
 const USERS_TO_FIX = [
-  { email: 'Botswana@test.co.za', password: 'Speccon', market: 'Botswana', role: 'marketAdmin' },
-  { email: 'Ghana@test.co.za', password: 'Speccon', market: 'Ghana', role: 'marketAdmin' },
-  { email: 'Hub@test.co.za', password: 'Speccon', market: 'Hub', role: 'marketAdmin' },
-  { email: 'Kenya@test.co.za', password: 'Speccon', market: 'Kenya', role: 'marketAdmin' },
-  { email: 'Mauritius@test.co.za', password: 'Speccon', market: 'Mauritius', role: 'marketAdmin' },
-  { email: 'Mozambique@test.co.za', password: 'Speccon', market: 'Mozambique', role: 'marketAdmin' },
-  { email: 'Seychelles@test.co.za', password: 'Speccon', market: 'Seychelles', role: 'marketAdmin' },
-  { email: 'Tanzania@test.co.za', password: 'Speccon', market: 'Tanzania', role: 'marketAdmin' },
-  { email: 'Uganda@test.co.za', password: 'Speccon', market: 'Uganda', role: 'marketAdmin' },
-  { email: 'Zambia@test.co.za', password: 'Speccon', market: 'Zambia', role: 'marketAdmin' },
+  { email: 'botswana@test.co.za', password: 'Speccon', market: 'Botswana', role: 'marketAdmin' },
+  { email: 'ghana@test.co.za', password: 'Speccon', market: 'Ghana', role: 'marketAdmin' },
+  { email: 'hub@test.co.za', password: 'Speccon', market: 'Hub', role: 'marketAdmin' },
+  { email: 'kenya@test.co.za', password: 'Speccon', market: 'Kenya', role: 'marketAdmin' },
+  { email: 'mauritius@test.co.za', password: 'Speccon', market: 'Mauritius', role: 'marketAdmin' },
+  { email: 'mozambique@test.co.za', password: 'Speccon', market: 'Mozambique', role: 'marketAdmin' },
+  { email: 'seychelles@test.co.za', password: 'Speccon', market: 'Seychelles', role: 'marketAdmin' },
+  { email: 'tanzania@test.co.za', password: 'Speccon', market: 'Tanzania', role: 'marketAdmin' },
+  { email: 'uganda@test.co.za', password: 'Speccon', market: 'Uganda', role: 'marketAdmin' },
+  { email: 'zambia@test.co.za', password: 'Speccon', market: 'Zambia', role: 'marketAdmin' },
   { email: 'manager@test.co.za', password: 'Speccon', market: null, role: 'manager' }
 ];
 

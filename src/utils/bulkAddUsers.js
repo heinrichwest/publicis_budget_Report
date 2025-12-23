@@ -3,16 +3,16 @@ import { collection, addDoc, query, where, getDocs } from 'firebase/firestore';
 import { auth, db } from '../firebase/config';
 
 const BULK_USERS = [
-  { market: 'Botswana', email: 'Botswana@test.co.za', username: 'Botswana', password: 'Speccon', role: 'marketAdmin' },
-  { market: 'Ghana', email: 'Ghana@test.co.za', username: 'Ghana', password: 'Speccon', role: 'marketAdmin' },
-  { market: 'Hub', email: 'Hub@test.co.za', username: 'Hub', password: 'Speccon', role: 'marketAdmin' },
-  { market: 'Kenya', email: 'Kenya@test.co.za', username: 'Kenya', password: 'Speccon', role: 'marketAdmin' },
-  { market: 'Mauritius', email: 'Mauritius@test.co.za', username: 'Mauritius', password: 'Speccon', role: 'marketAdmin' },
-  { market: 'Mozambique', email: 'Mozambique@test.co.za', username: 'Mozambic', password: 'Speccon', role: 'marketAdmin' },
-  { market: 'Seychelles', email: 'Seychelles@test.co.za', username: 'Seychelles', password: 'Speccon', role: 'marketAdmin' },
-  { market: 'Tanzania', email: 'Tanzania@test.co.za', username: 'Tanzania', password: 'Speccon', role: 'marketAdmin' },
-  { market: 'Uganda', email: 'Uganda@test.co.za', username: 'Uganda', password: 'Speccon', role: 'marketAdmin' },
-  { market: 'Zambia', email: 'Zambia@test.co.za', username: 'Zambia', password: 'Speccon', role: 'marketAdmin' },
+  { market: 'Botswana', email: 'botswana@test.co.za', username: 'Botswana', password: 'Speccon', role: 'marketAdmin' },
+  { market: 'Ghana', email: 'ghana@test.co.za', username: 'Ghana', password: 'Speccon', role: 'marketAdmin' },
+  { market: 'Hub', email: 'hub@test.co.za', username: 'Hub', password: 'Speccon', role: 'marketAdmin' },
+  { market: 'Kenya', email: 'kenya@test.co.za', username: 'Kenya', password: 'Speccon', role: 'marketAdmin' },
+  { market: 'Mauritius', email: 'mauritius@test.co.za', username: 'Mauritius', password: 'Speccon', role: 'marketAdmin' },
+  { market: 'Mozambique', email: 'mozambique@test.co.za', username: 'Mozambic', password: 'Speccon', role: 'marketAdmin' },
+  { market: 'Seychelles', email: 'seychelles@test.co.za', username: 'Seychelles', password: 'Speccon', role: 'marketAdmin' },
+  { market: 'Tanzania', email: 'tanzania@test.co.za', username: 'Tanzania', password: 'Speccon', role: 'marketAdmin' },
+  { market: 'Uganda', email: 'uganda@test.co.za', username: 'Uganda', password: 'Speccon', role: 'marketAdmin' },
+  { market: 'Zambia', email: 'zambia@test.co.za', username: 'Zambia', password: 'Speccon', role: 'marketAdmin' },
   { market: null, email: 'manager@test.co.za', username: 'Manager', password: 'Speccon', role: 'manager' }
 ];
 
