@@ -496,7 +496,7 @@ const ManagerActivityOverview = () => {
 
       {/* Comparison Dashboard Tab */}
       {activeTab === 'dashboardComparison' && (
-        <>
+        <div style={styles.contentScrollable}>
           {/* Filters */}
           <div style={styles.filtersBar}>
             <div style={styles.filterGroup}>
@@ -809,7 +809,7 @@ const ManagerActivityOverview = () => {
               );
             })()}
           </div>
-        </>
+        </div>
       )}
 
       {/* Activity Plan Detail Tab */}
@@ -1415,6 +1415,11 @@ const styles = {
   varianceValue: {
     fontSize: '12px',
     fontWeight: '600'
+  },
+  contentScrollable: {
+    flex: 1,
+    overflowY: 'auto',
+    overflowX: 'hidden'
   }
 };
 
