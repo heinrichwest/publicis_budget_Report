@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc } from 'firebase/firestore';
+import { collection, getDocs, setDoc, updateDoc, deleteDoc, doc } from 'firebase/firestore';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { db, auth } from '../../firebase/config';
 
@@ -63,7 +63,9 @@ const UserManagement = () => {
         newUser.password
       );
 
-      // Create user document in Firestore
+      const uid = userCredential.user.uid;
+
+      // Create user document in Firestore using UID as document ID
       const userData = {
         email: newUser.email.trim(),
         role: newUser.role,
@@ -74,7 +76,7 @@ const UserManagement = () => {
         userData.assignedMarket = newUser.assignedMarket;
       }
 
-      await addDoc(collection(db, 'users'), userData);
+      await setDoc(doc(db, 'users', uid), userData);
 
       setSuccess('User created successfully');
       setNewUser({ email: '', password: '', role: '', assignedMarket: '' });
