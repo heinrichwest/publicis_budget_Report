@@ -365,6 +365,21 @@ const ManagerActivityOverview = () => {
             </tr>
           </thead>
             <tbody>
+              <tr style={styles.totalRow}>
+                <td style={{...styles.totalLabel, left: 0, width: '100px', minWidth: '100px', maxWidth: '100px'}}>TOTAL</td>
+                <td style={{...styles.totalLabel, left: '100px', width: '80px', minWidth: '80px', maxWidth: '80px'}}></td>
+                <td style={{...styles.totalLabel, left: '180px', width: '160px', minWidth: '160px', maxWidth: '160px'}}></td>
+                <td style={{...styles.totalLabel, left: '340px', width: '120px', minWidth: '120px', maxWidth: '120px'}}></td>
+                <td style={{...styles.grandTotal, left: '460px', width: '130px', minWidth: '130px', maxWidth: '130px'}}>{formatNumber(filteredActivities.reduce((sum, a) => sum + convertToZAR(calculateRowTotal(a.monthlySpend), a.market), 0))}</td>
+                <td style={{...styles.grandTotal, left: '590px', width: '130px', minWidth: '130px', maxWidth: '130px'}}>{formatNumber(calculateGrandTotal())}</td>
+                <td style={{...styles.grandTotal, left: '720px', width: '130px', minWidth: '130px', maxWidth: '130px'}}></td>
+                <td style={{...styles.grandTotal, left: '850px', width: '130px', minWidth: '130px', maxWidth: '130px'}}></td>
+                {MONTHS.map(month => (
+                  <td key={month} style={styles.totalCell}>
+                    {formatNumber(calculateColumnTotal(month))}
+                  </td>
+                ))}
+              </tr>
               {filteredActivities.map(activity => {
                 const totalLocal = calculateRowTotal(activity.monthlySpend);
                 const totalZAR = convertToZAR(totalLocal, activity.market);
@@ -400,21 +415,6 @@ const ManagerActivityOverview = () => {
                   </tr>
                 );
               })}
-              <tr style={styles.totalRow}>
-                <td style={{...styles.totalLabel, left: 0, width: '100px', minWidth: '100px', maxWidth: '100px'}}>TOTAL</td>
-                <td style={{...styles.totalLabel, left: '100px', width: '80px', minWidth: '80px', maxWidth: '80px'}}></td>
-                <td style={{...styles.totalLabel, left: '180px', width: '160px', minWidth: '160px', maxWidth: '160px'}}></td>
-                <td style={{...styles.totalLabel, left: '340px', width: '120px', minWidth: '120px', maxWidth: '120px'}}></td>
-                <td style={{...styles.grandTotal, left: '460px', width: '130px', minWidth: '130px', maxWidth: '130px'}}>{formatNumber(filteredActivities.reduce((sum, a) => sum + convertToZAR(calculateRowTotal(a.monthlySpend), a.market), 0))}</td>
-                <td style={{...styles.grandTotal, left: '590px', width: '130px', minWidth: '130px', maxWidth: '130px'}}>{formatNumber(calculateGrandTotal())}</td>
-                <td style={{...styles.grandTotal, left: '720px', width: '130px', minWidth: '130px', maxWidth: '130px'}}></td>
-                <td style={{...styles.grandTotal, left: '850px', width: '130px', minWidth: '130px', maxWidth: '130px'}}></td>
-                {MONTHS.map(month => (
-                  <td key={month} style={styles.totalCell}>
-                    {formatNumber(calculateColumnTotal(month))}
-                  </td>
-                ))}
-              </tr>
             </tbody>
           </table>
       </div>
@@ -749,7 +749,7 @@ const styles = {
   },
   totalRow: {
     position: 'sticky',
-    bottom: 0,
+    top: '2.8rem',
     backgroundColor: '#000000',
     color: '#FFFFFF',
     fontWeight: '700',
