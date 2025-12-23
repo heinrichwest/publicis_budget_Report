@@ -783,9 +783,9 @@ const styles = {
     fontSize: '11px',
     fontWeight: '700',
     borderRight: '1px solid #333333',
-    minWidth: '80px',
-    width: '80px',
-    maxWidth: '80px'
+    minWidth: '110px',
+    width: '110px',
+    maxWidth: '110px'
   },
   instructions: {
     padding: '1rem 2rem',
