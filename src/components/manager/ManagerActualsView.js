@@ -5,10 +5,24 @@ import { getCurrencySymbol } from '../../utils/currencyMap';
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
+// Fixed list of 11 mediums in order
+const FIXED_MEDIUMS = [
+  'Television',
+  'Digital',
+  'Search',
+  'META',
+  'LinkedIn',
+  'Programmatic Display',
+  'Programmatic Video',
+  'Radio',
+  'Print',
+  'OOH',
+  'DOOH'
+];
+
 const ManagerActualsView = () => {
   const [actuals, setActuals] = useState([]);
   const [markets, setMarkets] = useState([]);
-  const [mediums, setMediums] = useState([]);
   const [currencyRates, setCurrencyRates] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -40,11 +54,6 @@ const ManagerActualsView = () => {
         ratesMap[data.market] = data.rate;
       });
       setCurrencyRates(ratesMap);
-
-      // Load mediums
-      const mediumsSnapshot = await getDocs(collection(db, 'mediums'));
-      const mediumsList = mediumsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      setMediums(mediumsList);
 
       // Load actuals - all markets for managers
       const actualsSnapshot = await getDocs(collection(db, 'actuals'));
@@ -82,21 +91,35 @@ const ManagerActualsView = () => {
 
   const filteredActuals = getFilteredActuals();
 
-  const calculateMonthTotal = (month, field) => {
-    return filteredActuals.reduce((sum, actual) => {
-      const value = parseFloat(actual.monthlyActuals?.[month]?.[field]) || 0;
-      const zarValue = convertToZAR(value, actual.market);
-      return sum + zarValue;
-    }, 0);
+  const calculateRowTotal = (monthlyActuals, market) => {
+    return MONTHS.reduce((sum, month) => {
+      const monthData = monthlyActuals?.[month] || { rateCard: 0, discount: 0, addedValue: 0 };
+      const rateCard = convertToZAR(parseFloat(monthData.rateCard) || 0, market);
+      const discount = convertToZAR(parseFloat(monthData.discount) || 0, market);
+      const addedValue = convertToZAR(parseFloat(monthData.addedValue) || 0, market);
+      const nett = rateCard - discount;
+
+      return {
+        rateCard: sum.rateCard + rateCard,
+        discount: sum.discount + discount,
+        nett: sum.nett + nett,
+        addedValue: sum.addedValue + addedValue
+      };
+    }, { rateCard: 0, discount: 0, nett: 0, addedValue: 0 });
   };
 
-  const calculateGrandTotal = (field) => {
+  const calculateMonthTotal = (month, field) => {
     return filteredActuals.reduce((sum, actual) => {
-      return sum + MONTHS.reduce((monthSum, month) => {
-        const value = parseFloat(actual.monthlyActuals?.[month]?.[field]) || 0;
-        const zarValue = convertToZAR(value, actual.market);
-        return monthSum + zarValue;
-      }, 0);
+      const monthData = actual.monthlyActuals?.[month] || { rateCard: 0, discount: 0, addedValue: 0 };
+
+      if (field === 'nett') {
+        const rateCard = convertToZAR(parseFloat(monthData.rateCard) || 0, actual.market);
+        const discount = convertToZAR(parseFloat(monthData.discount) || 0, actual.market);
+        return sum + (rateCard - discount);
+      }
+
+      const value = parseFloat(monthData[field]) || 0;
+      return sum + convertToZAR(value, actual.market);
     }, 0);
   };
 
@@ -129,8 +152,8 @@ const ManagerActualsView = () => {
             style={styles.filterSelect}
           >
             <option value="">All Mediums</option>
-            {mediums.map(medium => (
-              <option key={medium.id} value={medium.name}>{medium.name}</option>
+            {FIXED_MEDIUMS.map(medium => (
+              <option key={medium} value={medium}>{medium}</option>
             ))}
           </select>
         </div>
@@ -150,97 +173,135 @@ const ManagerActualsView = () => {
       <div style={styles.tableWrapper}>
         <table style={styles.table}>
           <thead>
+            {/* Main header row */}
             <tr>
-              <th style={{ ...styles.thFixed, left: 0, width: '120px', minWidth: '120px', maxWidth: '120px' }}>Market</th>
-              <th style={{ ...styles.thFixed, left: '120px', width: '120px', minWidth: '120px', maxWidth: '120px' }}>Medium</th>
-              {MONTHS.map(month => (
-                <React.Fragment key={month}>
-                  <th style={styles.th} colSpan="3">{month}</th>
-                </React.Fragment>
+              <th style={{ ...styles.thFixed, left: 0, width: '120px' }} rowSpan="2">Market</th>
+              <th style={{ ...styles.thFixed, left: '120px', width: '150px' }} rowSpan="2">Medium</th>
+              <th style={styles.thTotal} colSpan="6">TOTAL (ZAR)</th>
+              {MONTHS.map((month, index) => (
+                <th key={month} style={{...styles.th, borderRight: index === 11 ? '1px solid #555555' : '2px solid #000000'}} colSpan="6">{month} (ZAR)</th>
               ))}
-              <th style={{ ...styles.thTotal, width: '130px', minWidth: '130px', maxWidth: '130px' }}>Total Rate Card</th>
-              <th style={{ ...styles.thTotal, width: '130px', minWidth: '130px', maxWidth: '130px' }}>Total Discount</th>
-              <th style={{ ...styles.thTotal, width: '130px', minWidth: '130px', maxWidth: '130px' }}>Total Nett Nett</th>
             </tr>
+            {/* Sub-header row */}
             <tr>
-              <th style={{ ...styles.thFixed, left: 0, width: '120px', minWidth: '120px', maxWidth: '120px' }}></th>
-              <th style={{ ...styles.thFixed, left: '120px', width: '120px', minWidth: '120px', maxWidth: '120px' }}></th>
-              {MONTHS.map(month => (
+              {/* Total columns */}
+              <th style={styles.thSub}>Rate Card</th>
+              <th style={styles.thSub}>Discount</th>
+              <th style={styles.thSub}>Disc %</th>
+              <th style={styles.thSub}>Nett</th>
+              <th style={styles.thSub}>Added Value</th>
+              <th style={{...styles.thSub, borderRight: '2px solid #DDDDDD'}}>AV %</th>
+
+              {/* Monthly columns */}
+              {MONTHS.map((month, monthIndex) => (
                 <React.Fragment key={month}>
                   <th style={styles.thSub}>Rate Card</th>
                   <th style={styles.thSub}>Discount</th>
-                  <th style={styles.thSub}>Nett Nett</th>
+                  <th style={styles.thSub}>Disc %</th>
+                  <th style={styles.thSub}>Nett</th>
+                  <th style={styles.thSub}>Added Value</th>
+                  <th style={{...styles.thSub, borderRight: monthIndex === 11 ? '1px solid #EEEEEE' : '2px solid #DDDDDD'}}>AV %</th>
                 </React.Fragment>
               ))}
-              <th style={{ ...styles.thTotal, width: '130px', minWidth: '130px', maxWidth: '130px' }}>(ZAR)</th>
-              <th style={{ ...styles.thTotal, width: '130px', minWidth: '130px', maxWidth: '130px' }}>(ZAR)</th>
-              <th style={{ ...styles.thTotal, width: '130px', minWidth: '130px', maxWidth: '130px' }}>(ZAR)</th>
             </tr>
           </thead>
           <tbody>
             {/* Total Row */}
             <tr style={styles.totalRow}>
-              <td style={{ ...styles.totalLabel, left: 0, width: '120px', minWidth: '120px', maxWidth: '120px' }}>TOTAL</td>
-              <td style={{ ...styles.totalLabel, left: '120px', width: '120px', minWidth: '120px', maxWidth: '120px' }}></td>
-              {MONTHS.map(month => (
-                <React.Fragment key={month}>
-                  <td style={styles.totalCell}>{formatNumber(calculateMonthTotal(month, 'rateCard'))}</td>
-                  <td style={styles.totalCell}>{formatNumber(calculateMonthTotal(month, 'discount'))}</td>
-                  <td style={styles.totalCell}>{formatNumber(calculateMonthTotal(month, 'nettNett'))}</td>
-                </React.Fragment>
-              ))}
-              <td style={{ ...styles.grandTotal, width: '130px', minWidth: '130px', maxWidth: '130px' }}>{formatNumber(calculateGrandTotal('rateCard'))}</td>
-              <td style={{ ...styles.grandTotal, width: '130px', minWidth: '130px', maxWidth: '130px' }}>{formatNumber(calculateGrandTotal('discount'))}</td>
-              <td style={{ ...styles.grandTotal, width: '130px', minWidth: '130px', maxWidth: '130px' }}>{formatNumber(calculateGrandTotal('nettNett'))}</td>
+              <td style={{ ...styles.totalLabel, left: 0, width: '120px' }}>TOTAL</td>
+              <td style={{ ...styles.totalLabel, left: '120px', width: '150px' }}></td>
+
+              {/* Grand totals */}
+              {(() => {
+                const grandTotals = filteredActuals.reduce((sum, actual) => {
+                  const rowTotals = calculateRowTotal(actual.monthlyActuals, actual.market);
+                  return {
+                    rateCard: sum.rateCard + rowTotals.rateCard,
+                    discount: sum.discount + rowTotals.discount,
+                    nett: sum.nett + rowTotals.nett,
+                    addedValue: sum.addedValue + rowTotals.addedValue
+                  };
+                }, { rateCard: 0, discount: 0, nett: 0, addedValue: 0 });
+
+                const grandDiscPerc = grandTotals.rateCard > 0 ? (grandTotals.discount / grandTotals.rateCard) * 100 : 0;
+                const grandAVPerc = grandTotals.rateCard > 0 ? (grandTotals.addedValue / grandTotals.rateCard) * 100 : 0;
+
+                return (
+                  <>
+                    <td style={styles.totalCell}>{formatNumber(grandTotals.rateCard)}</td>
+                    <td style={styles.totalCell}>{formatNumber(grandTotals.discount)}</td>
+                    <td style={styles.totalCell}>{grandDiscPerc.toFixed(2)}%</td>
+                    <td style={styles.totalCell}>{formatNumber(grandTotals.nett)}</td>
+                    <td style={styles.totalCell}>{formatNumber(grandTotals.addedValue)}</td>
+                    <td style={{...styles.totalCell, borderRight: '2px solid #333333'}}>{grandAVPerc.toFixed(2)}%</td>
+                  </>
+                );
+              })()}
+
+              {/* Monthly totals */}
+              {MONTHS.map((month, monthIndex) => {
+                const monthTotals = {
+                  rateCard: calculateMonthTotal(month, 'rateCard'),
+                  discount: calculateMonthTotal(month, 'discount'),
+                  nett: calculateMonthTotal(month, 'nett'),
+                  addedValue: calculateMonthTotal(month, 'addedValue')
+                };
+                const monthDiscPerc = monthTotals.rateCard > 0 ? (monthTotals.discount / monthTotals.rateCard) * 100 : 0;
+                const monthAVPerc = monthTotals.rateCard > 0 ? (monthTotals.addedValue / monthTotals.rateCard) * 100 : 0;
+
+                return (
+                  <React.Fragment key={month}>
+                    <td style={styles.totalCell}>{formatNumber(monthTotals.rateCard)}</td>
+                    <td style={styles.totalCell}>{formatNumber(monthTotals.discount)}</td>
+                    <td style={styles.totalCell}>{monthDiscPerc.toFixed(2)}%</td>
+                    <td style={styles.totalCell}>{formatNumber(monthTotals.nett)}</td>
+                    <td style={styles.totalCell}>{formatNumber(monthTotals.addedValue)}</td>
+                    <td style={{...styles.totalCell, borderRight: monthIndex === 11 ? '1px solid #333333' : '2px solid #333333'}}>{monthAVPerc.toFixed(2)}%</td>
+                  </React.Fragment>
+                );
+              })}
             </tr>
+
+            {/* Data Rows */}
             {filteredActuals.map(actual => {
-              const currencySymbol = getCurrencySymbol(actual.market);
-
-              // Calculate totals for this row
-              const totalRateCard = MONTHS.reduce((sum, month) => {
-                const value = parseFloat(actual.monthlyActuals?.[month]?.rateCard) || 0;
-                return sum + value;
-              }, 0);
-
-              const totalDiscount = MONTHS.reduce((sum, month) => {
-                const value = parseFloat(actual.monthlyActuals?.[month]?.discount) || 0;
-                return sum + value;
-              }, 0);
-
-              const totalNettNett = MONTHS.reduce((sum, month) => {
-                const value = parseFloat(actual.monthlyActuals?.[month]?.nettNett) || 0;
-                return sum + value;
-              }, 0);
+              const totals = calculateRowTotal(actual.monthlyActuals, actual.market);
+              const totalDiscPerc = totals.rateCard > 0 ? (totals.discount / totals.rateCard) * 100 : 0;
+              const totalAVPerc = totals.rateCard > 0 ? (totals.addedValue / totals.rateCard) * 100 : 0;
 
               return (
                 <tr key={actual.id} style={styles.tr}>
-                  <td style={{ ...styles.tdFixed, left: 0, width: '120px', minWidth: '120px', maxWidth: '120px' }}>{actual.market}</td>
-                  <td style={{ ...styles.tdFixed, left: '120px', width: '120px', minWidth: '120px', maxWidth: '120px' }}>{actual.medium}</td>
-                  {MONTHS.map(month => {
-                    const monthData = actual.monthlyActuals?.[month] || {};
+                  <td style={{ ...styles.tdFixed, left: 0, width: '120px' }}>{actual.market}</td>
+                  <td style={{ ...styles.tdFixed, left: '120px', width: '150px' }}>{actual.medium}</td>
+
+                  {/* Total columns */}
+                  <td style={styles.tdTotal}>{formatNumber(totals.rateCard)}</td>
+                  <td style={styles.tdTotal}>{formatNumber(totals.discount)}</td>
+                  <td style={styles.tdTotal}>{totalDiscPerc.toFixed(2)}%</td>
+                  <td style={styles.tdTotal}>{formatNumber(totals.nett)}</td>
+                  <td style={styles.tdTotal}>{formatNumber(totals.addedValue)}</td>
+                  <td style={{...styles.tdTotal, borderRight: '2px solid #DDDDDD'}}>{totalAVPerc.toFixed(2)}%</td>
+
+                  {/* Monthly columns */}
+                  {MONTHS.map((month, monthIndex) => {
+                    const monthData = actual.monthlyActuals?.[month] || { rateCard: 0, discount: 0, addedValue: 0 };
+                    const rateCard = convertToZAR(parseFloat(monthData.rateCard) || 0, actual.market);
+                    const discount = convertToZAR(parseFloat(monthData.discount) || 0, actual.market);
+                    const addedValue = convertToZAR(parseFloat(monthData.addedValue) || 0, actual.market);
+                    const nett = rateCard - discount;
+                    const discPerc = rateCard > 0 ? (discount / rateCard) * 100 : 0;
+                    const avPerc = rateCard > 0 ? (addedValue / rateCard) * 100 : 0;
+
                     return (
                       <React.Fragment key={month}>
-                        <td style={styles.td}>
-                          {monthData.rateCard ? formatNumber(monthData.rateCard) : '-'}
-                        </td>
-                        <td style={styles.td}>
-                          {monthData.discount ? formatNumber(monthData.discount) : '-'}
-                        </td>
-                        <td style={styles.td}>
-                          {monthData.nettNett ? formatNumber(monthData.nettNett) : '-'}
-                        </td>
+                        <td style={styles.td}>{formatNumber(rateCard)}</td>
+                        <td style={styles.td}>{formatNumber(discount)}</td>
+                        <td style={styles.td}>{discPerc.toFixed(2)}%</td>
+                        <td style={styles.td}>{formatNumber(nett)}</td>
+                        <td style={styles.td}>{formatNumber(addedValue)}</td>
+                        <td style={{...styles.td, borderRight: monthIndex === 11 ? '1px solid #EEEEEE' : '2px solid #DDDDDD'}}>{avPerc.toFixed(2)}%</td>
                       </React.Fragment>
                     );
                   })}
-                  <td style={{ ...styles.tdTotalCell, width: '130px', minWidth: '130px', maxWidth: '130px' }}>
-                    {formatNumber(convertToZAR(totalRateCard, actual.market))}
-                  </td>
-                  <td style={{ ...styles.tdTotalCell, width: '130px', minWidth: '130px', maxWidth: '130px' }}>
-                    {formatNumber(convertToZAR(totalDiscount, actual.market))}
-                  </td>
-                  <td style={{ ...styles.tdTotalCell, width: '130px', minWidth: '130px', maxWidth: '130px' }}>
-                    {formatNumber(convertToZAR(totalNettNett, actual.market))}
-                  </td>
                 </tr>
               );
             })}
@@ -347,8 +408,22 @@ const styles = {
     textAlign: 'left',
     padding: '0.75rem 0.5rem',
     borderRight: '1px solid #333333',
-    zIndex: 3,
+    zIndex: 4,
     whiteSpace: 'nowrap'
+  },
+  thTotal: {
+    position: 'sticky',
+    top: 0,
+    backgroundColor: '#000000',
+    color: '#FFFFFF',
+    fontWeight: '700',
+    fontSize: '10px',
+    letterSpacing: '0.5px',
+    textTransform: 'uppercase',
+    textAlign: 'center',
+    padding: '0.75rem 0.5rem',
+    borderRight: '2px solid #666666',
+    zIndex: 2
   },
   th: {
     position: 'sticky',
@@ -364,20 +439,6 @@ const styles = {
     borderRight: '1px solid #555555',
     zIndex: 2
   },
-  thTotal: {
-    position: 'sticky',
-    top: 0,
-    backgroundColor: '#000000',
-    color: '#FFFFFF',
-    fontWeight: '700',
-    fontSize: '10px',
-    letterSpacing: '0.5px',
-    textTransform: 'uppercase',
-    textAlign: 'center',
-    padding: '0.75rem 0.5rem',
-    borderRight: '1px solid #333333',
-    zIndex: 2
-  },
   thSub: {
     position: 'sticky',
     top: '2.5rem',
@@ -391,7 +452,7 @@ const styles = {
     padding: '0.5rem',
     borderRight: '1px solid #EEEEEE',
     borderBottom: '2px solid #DDDDDD',
-    minWidth: '100px',
+    minWidth: '90px',
     zIndex: 2
   },
   tr: {
@@ -408,21 +469,22 @@ const styles = {
     zIndex: 1,
     whiteSpace: 'nowrap'
   },
-  tdTotalCell: {
-    backgroundColor: '#F9F9F9',
+  tdTotal: {
+    backgroundColor: '#FAFAFA',
     padding: '0.5rem',
-    borderRight: '1px solid #EEEEEE',
+    textAlign: 'right',
+    borderRight: '1px solid #DDDDDD',
     borderBottom: '1px solid #EEEEEE',
+    minWidth: '90px',
     fontSize: '12px',
-    fontWeight: '600',
-    textAlign: 'right'
+    fontWeight: '600'
   },
   td: {
     padding: '0.5rem',
     textAlign: 'right',
     borderRight: '1px solid #EEEEEE',
     borderBottom: '1px solid #EEEEEE',
-    minWidth: '100px',
+    minWidth: '90px',
     fontSize: '12px'
   },
   totalRow: {
@@ -450,16 +512,7 @@ const styles = {
     fontSize: '11px',
     fontWeight: '700',
     borderRight: '1px solid #333333',
-    minWidth: '100px'
-  },
-  grandTotal: {
-    backgroundColor: '#000000',
-    color: '#FFFFFF',
-    padding: '0.75rem 0.5rem',
-    fontSize: '11px',
-    fontWeight: '700',
-    textAlign: 'right',
-    borderRight: '1px solid #333333'
+    minWidth: '90px'
   },
   instructions: {
     padding: '1rem 2rem',
