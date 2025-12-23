@@ -8,6 +8,7 @@ const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', '
 
 const ManagerActivityOverview = () => {
   const [activities, setActivities] = useState([]);
+  const [actuals, setActuals] = useState([]);
   const [markets, setMarkets] = useState([]);
   const [businessUnits, setBusinessUnits] = useState([]);
   const [campaigns, setCampaigns] = useState([]);
@@ -15,7 +16,7 @@ const ManagerActivityOverview = () => {
   const [currencyRates, setCurrencyRates] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [activeTab, setActiveTab] = useState('dashboard');
+  const [activeTab, setActiveTab] = useState('dashboardBudget');
   const [reportingMonth, setReportingMonth] = useState('Dec');
 
   // Filter state
@@ -61,6 +62,14 @@ const ManagerActivityOverview = () => {
       }));
       setActivities(activitiesList);
 
+      // Load actuals
+      const actualsSnapshot = await getDocs(collection(db, 'actuals'));
+      const actualsList = actualsSnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+      setActuals(actualsList);
+
       // Extract unique business units and campaigns
       const uniqueBusinessUnits = [...new Set(activitiesList.map(a => a.businessUnit).filter(Boolean))].sort();
       const uniqueCampaigns = [...new Set(activitiesList.map(a => a.campaign).filter(Boolean))].sort();
@@ -78,13 +87,6 @@ const ManagerActivityOverview = () => {
       minimumFractionDigits: 0,
       maximumFractionDigits: 0
     }).format(num || 0);
-  };
-
-  const formatRate = (rate) => {
-    return new Intl.NumberFormat('en-ZA', {
-      minimumFractionDigits: 4,
-      maximumFractionDigits: 4
-    }).format(rate || 1);
   };
 
   const calculateRowTotal = (monthlySpend) => {
@@ -135,9 +137,19 @@ const ManagerActivityOverview = () => {
     });
   };
 
-  const filteredActivities = getFilteredActivities();
+  const getFilteredActuals = () => {
+    return actuals.filter(actual => {
+      if (filters.market && actual.market !== filters.market) return false;
+      if (filters.medium && actual.medium !== filters.medium) return false;
+      return true;
+    });
+  };
 
-  const getStatistics = () => {
+  const filteredActivities = getFilteredActivities();
+  const filteredActuals = getFilteredActuals();
+
+  // Activity Plan Statistics (for dashboard)
+  const getActivityPlanStats = () => {
     const filtered = filteredActivities;
 
     // Market stats
@@ -184,7 +196,49 @@ const ManagerActivityOverview = () => {
     };
   };
 
-  const statistics = getStatistics();
+  // Actuals Statistics (for dashboard)
+  const getActualsStats = () => {
+    const filtered = filteredActuals;
+
+    const calculateActualTotal = (monthlyActuals) => {
+      let total = 0;
+      MONTHS.forEach(month => {
+        const monthData = monthlyActuals?.[month] || { rateCard: 0, discount: 0 };
+        const rateCard = parseFloat(monthData.rateCard) || 0;
+        const discount = parseFloat(monthData.discount) || 0;
+        total += (rateCard - discount);
+      });
+      return total;
+    };
+
+    // Market stats
+    const marketTotals = {};
+    filtered.forEach(actual => {
+      const market = actual.market || 'Unknown';
+      const totalLocal = calculateActualTotal(actual.monthlyActuals);
+      const totalZAR = convertToZAR(totalLocal, actual.market);
+      if (!marketTotals[market]) marketTotals[market] = 0;
+      marketTotals[market] += totalZAR;
+    });
+
+    // Medium stats
+    const mediumTotals = {};
+    filtered.forEach(actual => {
+      const medium = actual.medium || 'Unknown';
+      const totalLocal = calculateActualTotal(actual.monthlyActuals);
+      const totalZAR = convertToZAR(totalLocal, actual.market);
+      if (!mediumTotals[medium]) mediumTotals[medium] = 0;
+      mediumTotals[medium] += totalZAR;
+    });
+
+    return {
+      market: Object.entries(marketTotals).sort((a, b) => b[1] - a[1]),
+      medium: Object.entries(mediumTotals).sort((a, b) => b[1] - a[1])
+    };
+  };
+
+  const activityPlanStats = getActivityPlanStats();
+  const actualsStats = getActualsStats();
 
   if (loading) {
     return <div style={styles.loading}>Loading...</div>;
@@ -194,7 +248,7 @@ const ManagerActivityOverview = () => {
     <div style={styles.container}>
       {/* Compact Header */}
       <div style={styles.compactHeader}>
-        <h2 style={styles.marketTitle}>All Markets</h2>
+        <h2 style={styles.marketTitle}>Manager Dashboard</h2>
         <div style={styles.headerControls}>
           <div style={styles.controlItem}>
             <span style={styles.controlLabel}>Reporting Month:</span>
@@ -214,40 +268,58 @@ const ManagerActivityOverview = () => {
       {/* Tab Navigation */}
       <div style={styles.tabsContainer}>
         <button
-          onClick={() => setActiveTab('dashboard')}
+          onClick={() => setActiveTab('dashboardBudget')}
           style={{
             ...styles.tab,
-            ...(activeTab === 'dashboard' ? styles.activeTab : {})
+            ...(activeTab === 'dashboardBudget' ? styles.activeTab : {})
           }}
         >
-          Dashboard
+          Budget Dashboard
         </button>
         <button
-          onClick={() => setActiveTab('activityPlan')}
+          onClick={() => setActiveTab('dashboardActuals')}
           style={{
             ...styles.tab,
-            ...(activeTab === 'activityPlan' ? styles.activeTab : {})
+            ...(activeTab === 'dashboardActuals' ? styles.activeTab : {})
           }}
         >
-          Activity Plan
+          Actuals Dashboard
         </button>
         <button
-          onClick={() => setActiveTab('actuals')}
+          onClick={() => setActiveTab('dashboardComparison')}
           style={{
             ...styles.tab,
-            ...(activeTab === 'actuals' ? styles.activeTab : {})
+            ...(activeTab === 'dashboardComparison' ? styles.activeTab : {})
           }}
         >
-          Actuals
+          Comparison Dashboard
+        </button>
+        <button
+          onClick={() => setActiveTab('activityPlanDetail')}
+          style={{
+            ...styles.tab,
+            ...(activeTab === 'activityPlanDetail' ? styles.activeTab : {})
+          }}
+        >
+          Activity Plan Data
+        </button>
+        <button
+          onClick={() => setActiveTab('actualsDetail')}
+          style={{
+            ...styles.tab,
+            ...(activeTab === 'actualsDetail' ? styles.activeTab : {})
+          }}
+        >
+          Actuals Data
         </button>
       </div>
 
       {error && <div style={styles.error}>{error}</div>}
 
-      {/* Dashboard Tab */}
-      {activeTab === 'dashboard' && (
+      {/* Budget Dashboard Tab */}
+      {activeTab === 'dashboardBudget' && (
         <>
-          {/* Dashboard Filter */}
+          {/* Filters */}
           <div style={styles.filtersBar}>
             <div style={styles.filterGroup}>
               <label style={styles.filterLabel}>Market</label>
@@ -274,10 +346,10 @@ const ManagerActivityOverview = () => {
 
           <div style={styles.statsContainer}>
             <div style={styles.statCard}>
-              <h3 style={styles.statTitle}>Market (ZAR)</h3>
+              <h3 style={styles.statTitle}>Budget by Market (ZAR)</h3>
               <div style={styles.barChartContainer}>
-                {statistics.market.map(([name, total]) => {
-                  const maxTotal = Math.max(...statistics.market.map(([,t]) => t));
+                {activityPlanStats.market.map(([name, total]) => {
+                  const maxTotal = Math.max(...activityPlanStats.market.map(([,t]) => t));
                   const percentage = (total / maxTotal) * 100;
                   return (
                     <div key={name} style={styles.barRow}>
@@ -293,10 +365,10 @@ const ManagerActivityOverview = () => {
             </div>
 
             <div style={styles.statCard}>
-              <h3 style={styles.statTitle}>Business Unit (ZAR)</h3>
+              <h3 style={styles.statTitle}>Budget by Business Unit (ZAR)</h3>
               <div style={styles.barChartContainer}>
-                {statistics.businessUnit.map(([name, total]) => {
-                  const maxTotal = Math.max(...statistics.businessUnit.map(([,t]) => t));
+                {activityPlanStats.businessUnit.map(([name, total]) => {
+                  const maxTotal = Math.max(...activityPlanStats.businessUnit.map(([,t]) => t));
                   const percentage = (total / maxTotal) * 100;
                   return (
                     <div key={name} style={styles.barRow}>
@@ -312,10 +384,10 @@ const ManagerActivityOverview = () => {
             </div>
 
             <div style={styles.statCard}>
-              <h3 style={styles.statTitle}>Top 10 Campaigns (ZAR)</h3>
+              <h3 style={styles.statTitle}>Budget by Top 10 Campaigns (ZAR)</h3>
               <div style={styles.barChartContainer}>
-                {statistics.campaign.map(([name, total]) => {
-                  const maxTotal = Math.max(...statistics.campaign.map(([,t]) => t));
+                {activityPlanStats.campaign.map(([name, total]) => {
+                  const maxTotal = Math.max(...activityPlanStats.campaign.map(([,t]) => t));
                   const percentage = (total / maxTotal) * 100;
                   return (
                     <div key={name} style={styles.barRow}>
@@ -331,10 +403,10 @@ const ManagerActivityOverview = () => {
             </div>
 
             <div style={styles.statCard}>
-              <h3 style={styles.statTitle}>Medium (ZAR)</h3>
+              <h3 style={styles.statTitle}>Budget by Medium (ZAR)</h3>
               <div style={styles.barChartContainer}>
-                {statistics.medium.map(([name, total]) => {
-                  const maxTotal = Math.max(...statistics.medium.map(([,t]) => t));
+                {activityPlanStats.medium.map(([name, total]) => {
+                  const maxTotal = Math.max(...activityPlanStats.medium.map(([,t]) => t));
                   const percentage = (total / maxTotal) * 100;
                   return (
                     <div key={name} style={styles.barRow}>
@@ -352,8 +424,396 @@ const ManagerActivityOverview = () => {
         </>
       )}
 
-      {/* Activity Plan Tab */}
-      {activeTab === 'activityPlan' && (
+      {/* Actuals Dashboard Tab */}
+      {activeTab === 'dashboardActuals' && (
+        <>
+          {/* Filters */}
+          <div style={styles.filtersBar}>
+            <div style={styles.filterGroup}>
+              <label style={styles.filterLabel}>Market</label>
+              <select
+                value={filters.market}
+                onChange={(e) => setFilters({ ...filters, market: e.target.value })}
+                style={styles.filterSelect}
+              >
+                <option value="">All Markets</option>
+                {markets.map(market => (
+                  <option key={market.id} value={market.name}>{market.name}</option>
+                ))}
+              </select>
+            </div>
+            {filters.market && (
+              <button
+                onClick={() => setFilters({ ...filters, market: '' })}
+                style={styles.clearButton}
+              >
+                CLEAR FILTER
+              </button>
+            )}
+          </div>
+
+          <div style={styles.statsContainer}>
+            <div style={styles.statCard}>
+              <h3 style={styles.statTitle}>Actuals by Market (ZAR)</h3>
+              <div style={styles.barChartContainer}>
+                {actualsStats.market.map(([name, total]) => {
+                  const maxTotal = Math.max(...actualsStats.market.map(([,t]) => t));
+                  const percentage = (total / maxTotal) * 100;
+                  return (
+                    <div key={name} style={styles.barRow}>
+                      <div style={styles.barLabel}>{name}</div>
+                      <div style={styles.barWrapper}>
+                        <div style={{...styles.bar, backgroundColor: '#10B981', width: `${percentage}%`}}></div>
+                        <div style={styles.barValue}>{formatNumber(total)}</div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div style={styles.statCard}>
+              <h3 style={styles.statTitle}>Actuals by Medium (ZAR)</h3>
+              <div style={styles.barChartContainer}>
+                {actualsStats.medium.map(([name, total]) => {
+                  const maxTotal = Math.max(...actualsStats.medium.map(([,t]) => t));
+                  const percentage = (total / maxTotal) * 100;
+                  return (
+                    <div key={name} style={styles.barRow}>
+                      <div style={styles.barLabel}>{name}</div>
+                      <div style={styles.barWrapper}>
+                        <div style={{...styles.bar, backgroundColor: '#10B981', width: `${percentage}%`}}></div>
+                        <div style={styles.barValue}>{formatNumber(total)}</div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* Comparison Dashboard Tab */}
+      {activeTab === 'dashboardComparison' && (
+        <>
+          {/* Filters */}
+          <div style={styles.filtersBar}>
+            <div style={styles.filterGroup}>
+              <label style={styles.filterLabel}>Market</label>
+              <select
+                value={filters.market}
+                onChange={(e) => setFilters({ ...filters, market: e.target.value })}
+                style={styles.filterSelect}
+              >
+                <option value="">All Markets</option>
+                {markets.map(market => (
+                  <option key={market.id} value={market.name}>{market.name}</option>
+                ))}
+              </select>
+            </div>
+            <div style={styles.filterGroup}>
+              <label style={styles.filterLabel}>Medium</label>
+              <select
+                value={filters.medium}
+                onChange={(e) => setFilters({ ...filters, medium: e.target.value })}
+                style={styles.filterSelect}
+              >
+                <option value="">All Mediums</option>
+                {mediums.map(medium => (
+                  <option key={medium.id} value={medium.name}>{medium.name}</option>
+                ))}
+              </select>
+            </div>
+            {(filters.market || filters.medium) && (
+              <button
+                onClick={() => setFilters({ ...filters, market: '', medium: '' })}
+                style={styles.clearButton}
+              >
+                CLEAR FILTERS
+              </button>
+            )}
+          </div>
+
+          {/* YTD Comparison Section */}
+          <div style={styles.dashboardSection}>
+            <h3 style={styles.sectionTitle}>YTD Comparison (Budget vs Actual)</h3>
+            <p style={styles.sectionSubtitle}>Data through {reportingMonth} 2025</p>
+
+            {(() => {
+              // Calculate YTD by market
+              const ytdComparison = {};
+
+              // Budget YTD
+              filteredActivities.forEach(activity => {
+                const market = activity.market || 'Unknown';
+                const ytdLocal = calculateYTD(activity.monthlySpend, reportingMonth);
+                const ytdZAR = convertToZAR(ytdLocal, activity.market);
+
+                if (!ytdComparison[market]) {
+                  ytdComparison[market] = { budget: 0, actual: 0 };
+                }
+                ytdComparison[market].budget += ytdZAR;
+              });
+
+              // Actual YTD
+              filteredActuals.forEach(actual => {
+                const market = actual.market || 'Unknown';
+                const monthIndex = MONTHS.indexOf(reportingMonth);
+                let ytdActual = 0;
+
+                for (let i = 0; i <= monthIndex; i++) {
+                  const monthData = actual.monthlyActuals?.[MONTHS[i]] || { rateCard: 0, discount: 0 };
+                  const rateCard = parseFloat(monthData.rateCard) || 0;
+                  const discount = parseFloat(monthData.discount) || 0;
+                  ytdActual += (rateCard - discount);
+                }
+
+                const ytdZAR = convertToZAR(ytdActual, actual.market);
+
+                if (!ytdComparison[market]) {
+                  ytdComparison[market] = { budget: 0, actual: 0 };
+                }
+                ytdComparison[market].actual += ytdZAR;
+              });
+
+              // Sort markets by budget total
+              const sortedMarkets = Object.entries(ytdComparison)
+                .sort((a, b) => b[1].budget - a[1].budget);
+
+              // Calculate grand totals
+              const grandTotal = {
+                budget: sortedMarkets.reduce((sum, [_, data]) => sum + data.budget, 0),
+                actual: sortedMarkets.reduce((sum, [_, data]) => sum + data.actual, 0)
+              };
+
+              const maxValue = Math.max(grandTotal.budget, grandTotal.actual, 1);
+
+              return (
+                <div style={styles.chartContainer}>
+                  {/* Grand Total */}
+                  <div style={styles.chartRow}>
+                    <div style={styles.chartLabel}>
+                      <strong>TOTAL</strong>
+                    </div>
+                    <div style={styles.chartBars}>
+                      <div style={styles.comparisonBarRow}>
+                        <span style={styles.comparisonBarLabel}>Budget:</span>
+                        <div style={styles.barBackground}>
+                          <div style={{...styles.bar, width: `${(grandTotal.budget / maxValue) * 100}%`}}></div>
+                        </div>
+                        <span style={styles.barValue}>R {formatNumber(grandTotal.budget)}</span>
+                      </div>
+                      <div style={styles.comparisonBarRow}>
+                        <span style={styles.comparisonBarLabel}>Actual:</span>
+                        <div style={styles.barBackground}>
+                          <div style={{...styles.bar, backgroundColor: '#10B981', width: `${(grandTotal.actual / maxValue) * 100}%`}}></div>
+                        </div>
+                        <span style={styles.barValue}>R {formatNumber(grandTotal.actual)}</span>
+                      </div>
+                      <div style={styles.comparisonBarRow}>
+                        <span style={styles.comparisonBarLabel}>Variance:</span>
+                        <span style={{
+                          ...styles.varianceValue,
+                          color: grandTotal.actual > grandTotal.budget ? '#DC2626' : '#10B981',
+                          marginLeft: '70px'
+                        }}>
+                          R {formatNumber(grandTotal.actual - grandTotal.budget)}
+                          ({grandTotal.budget > 0 ? ((grandTotal.actual - grandTotal.budget) / grandTotal.budget * 100).toFixed(1) : '0'}%)
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* By Market */}
+                  {sortedMarkets.map(([market, data]) => {
+                    const variance = data.actual - data.budget;
+                    const variancePct = data.budget > 0 ? (variance / data.budget * 100).toFixed(1) : '0';
+
+                    return (
+                      <div key={market} style={styles.chartRow}>
+                        <div style={styles.chartLabel}>{market}</div>
+                        <div style={styles.chartBars}>
+                          <div style={styles.comparisonBarRow}>
+                            <span style={styles.comparisonBarLabel}>Budget:</span>
+                            <div style={styles.barBackground}>
+                              <div style={{...styles.bar, width: `${(data.budget / maxValue) * 100}%`}}></div>
+                            </div>
+                            <span style={styles.barValue}>R {formatNumber(data.budget)}</span>
+                          </div>
+                          <div style={styles.comparisonBarRow}>
+                            <span style={styles.comparisonBarLabel}>Actual:</span>
+                            <div style={styles.barBackground}>
+                              <div style={{...styles.bar, backgroundColor: '#10B981', width: `${(data.actual / maxValue) * 100}%`}}></div>
+                            </div>
+                            <span style={styles.barValue}>R {formatNumber(data.actual)}</span>
+                          </div>
+                          <div style={styles.comparisonBarRow}>
+                            <span style={styles.comparisonBarLabel}>Variance:</span>
+                            <span style={{
+                              ...styles.varianceValue,
+                              color: variance > 0 ? '#DC2626' : '#10B981',
+                              marginLeft: '70px'
+                            }}>
+                              R {formatNumber(variance)} ({variancePct}%)
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })()}
+          </div>
+
+          {/* Full Year Projection Section */}
+          <div style={styles.dashboardSection}>
+            <h3 style={styles.sectionTitle}>Full Year Projection</h3>
+            <p style={styles.sectionSubtitle}>Actuals (Jan-{reportingMonth}) + Budget ({MONTHS[MONTHS.indexOf(reportingMonth) + 1] || 'Dec'}-Dec)</p>
+
+            {(() => {
+              // Calculate full year projection by market
+              const projection = {};
+              const monthIndex = MONTHS.indexOf(reportingMonth);
+
+              // Actuals for months up to reporting month + Budget for remaining months
+              filteredActivities.forEach(activity => {
+                const market = activity.market || 'Unknown';
+
+                if (!projection[market]) {
+                  projection[market] = { actual: 0, projected: 0, budget: 0 };
+                }
+
+                // Full year budget
+                const fullYearBudgetLocal = calculateRowTotal(activity.monthlySpend);
+                const fullYearBudgetZAR = convertToZAR(fullYearBudgetLocal, activity.market);
+                projection[market].budget += fullYearBudgetZAR;
+
+                // Budget for remaining months only
+                let remainingBudgetLocal = 0;
+                for (let i = monthIndex + 1; i < MONTHS.length; i++) {
+                  remainingBudgetLocal += parseFloat(activity.monthlySpend?.[MONTHS[i]]) || 0;
+                }
+                const remainingBudgetZAR = convertToZAR(remainingBudgetLocal, activity.market);
+                projection[market].projected += remainingBudgetZAR;
+              });
+
+              // Add actuals for completed months
+              filteredActuals.forEach(actual => {
+                const market = actual.market || 'Unknown';
+                let actualToDateLocal = 0;
+
+                for (let i = 0; i <= monthIndex; i++) {
+                  const monthData = actual.monthlyActuals?.[MONTHS[i]] || { rateCard: 0, discount: 0 };
+                  const rateCard = parseFloat(monthData.rateCard) || 0;
+                  const discount = parseFloat(monthData.discount) || 0;
+                  actualToDateLocal += (rateCard - discount);
+                }
+
+                const actualToDateZAR = convertToZAR(actualToDateLocal, actual.market);
+
+                if (!projection[market]) {
+                  projection[market] = { actual: 0, projected: 0, budget: 0 };
+                }
+                projection[market].actual += actualToDateZAR;
+                projection[market].projected += actualToDateZAR; // Add to projected full year
+              });
+
+              // Sort markets by projected total
+              const sortedMarkets = Object.entries(projection)
+                .sort((a, b) => b[1].projected - a[1].projected);
+
+              // Calculate grand totals
+              const grandTotal = {
+                budget: sortedMarkets.reduce((sum, [_, data]) => sum + data.budget, 0),
+                projected: sortedMarkets.reduce((sum, [_, data]) => sum + data.projected, 0)
+              };
+
+              const maxValue = Math.max(grandTotal.budget, grandTotal.projected, 1);
+
+              return (
+                <div style={styles.chartContainer}>
+                  {/* Grand Total */}
+                  <div style={styles.chartRow}>
+                    <div style={styles.chartLabel}>
+                      <strong>TOTAL</strong>
+                    </div>
+                    <div style={styles.chartBars}>
+                      <div style={styles.comparisonBarRow}>
+                        <span style={styles.comparisonBarLabel}>Budget:</span>
+                        <div style={styles.barBackground}>
+                          <div style={{...styles.bar, width: `${(grandTotal.budget / maxValue) * 100}%`}}></div>
+                        </div>
+                        <span style={styles.barValue}>R {formatNumber(grandTotal.budget)}</span>
+                      </div>
+                      <div style={styles.comparisonBarRow}>
+                        <span style={styles.comparisonBarLabel}>Projected:</span>
+                        <div style={styles.barBackground}>
+                          <div style={{...styles.bar, backgroundColor: '#F59E0B', width: `${(grandTotal.projected / maxValue) * 100}%`}}></div>
+                        </div>
+                        <span style={styles.barValue}>R {formatNumber(grandTotal.projected)}</span>
+                      </div>
+                      <div style={styles.comparisonBarRow}>
+                        <span style={styles.comparisonBarLabel}>Variance:</span>
+                        <span style={{
+                          ...styles.varianceValue,
+                          color: grandTotal.projected > grandTotal.budget ? '#DC2626' : '#10B981',
+                          marginLeft: '70px'
+                        }}>
+                          R {formatNumber(grandTotal.projected - grandTotal.budget)}
+                          ({grandTotal.budget > 0 ? ((grandTotal.projected - grandTotal.budget) / grandTotal.budget * 100).toFixed(1) : '0'}%)
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* By Market */}
+                  {sortedMarkets.map(([market, data]) => {
+                    const variance = data.projected - data.budget;
+                    const variancePct = data.budget > 0 ? (variance / data.budget * 100).toFixed(1) : '0';
+
+                    return (
+                      <div key={market} style={styles.chartRow}>
+                        <div style={styles.chartLabel}>{market}</div>
+                        <div style={styles.chartBars}>
+                          <div style={styles.comparisonBarRow}>
+                            <span style={styles.comparisonBarLabel}>Budget:</span>
+                            <div style={styles.barBackground}>
+                              <div style={{...styles.bar, width: `${(data.budget / maxValue) * 100}%`}}></div>
+                            </div>
+                            <span style={styles.barValue}>R {formatNumber(data.budget)}</span>
+                          </div>
+                          <div style={styles.comparisonBarRow}>
+                            <span style={styles.comparisonBarLabel}>Projected:</span>
+                            <div style={styles.barBackground}>
+                              <div style={{...styles.bar, backgroundColor: '#F59E0B', width: `${(data.projected / maxValue) * 100}%`}}></div>
+                            </div>
+                            <span style={styles.barValue}>R {formatNumber(data.projected)}</span>
+                          </div>
+                          <div style={styles.comparisonBarRow}>
+                            <span style={styles.comparisonBarLabel}>Variance:</span>
+                            <span style={{
+                              ...styles.varianceValue,
+                              color: variance > 0 ? '#DC2626' : '#10B981',
+                              marginLeft: '70px'
+                            }}>
+                              R {formatNumber(variance)} ({variancePct}%)
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })()}
+          </div>
+        </>
+      )}
+
+      {/* Activity Plan Detail Tab */}
+      {activeTab === 'activityPlanDetail' && (
         <>
           {/* Filters */}
           <div style={styles.filtersBar}>
@@ -497,8 +957,8 @@ const ManagerActivityOverview = () => {
         </>
       )}
 
-      {/* Actuals Tab */}
-      {activeTab === 'actuals' && (
+      {/* Actuals Detail Tab */}
+      {activeTab === 'actualsDetail' && (
         <ManagerActualsView />
       )}
     </div>
@@ -563,29 +1023,26 @@ const styles = {
     cursor: 'pointer',
     outline: 'none'
   },
-  controlValue: {
-    fontSize: '13px',
-    fontWeight: '600',
-    color: '#000000'
-  },
   tabsContainer: {
     display: 'flex',
     gap: '0.5rem',
     padding: '0 2rem',
     borderBottom: '2px solid #EEEEEE',
-    backgroundColor: '#FFFFFF'
+    backgroundColor: '#FFFFFF',
+    overflowX: 'auto'
   },
   tab: {
-    padding: '1rem 2rem',
+    padding: '1rem 1.5rem',
     backgroundColor: 'transparent',
     border: 'none',
     borderBottom: '3px solid transparent',
     cursor: 'pointer',
-    fontSize: '14px',
+    fontSize: '13px',
     fontWeight: '600',
     color: '#666666',
     transition: 'all 0.2s',
-    outline: 'none'
+    outline: 'none',
+    whiteSpace: 'nowrap'
   },
   activeTab: {
     color: '#000000',
@@ -598,6 +1055,49 @@ const styles = {
     margin: '0',
     fontSize: '14px',
     borderBottom: '1px solid #FCC'
+  },
+  filtersBar: {
+    display: 'flex',
+    gap: '1rem',
+    padding: '1.5rem 2rem',
+    backgroundColor: '#F9F9F9',
+    borderBottom: '1px solid #EEEEEE',
+    flexWrap: 'wrap',
+    alignItems: 'flex-end'
+  },
+  filterGroup: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '0.25rem'
+  },
+  filterLabel: {
+    fontSize: '10px',
+    fontWeight: '600',
+    color: '#666666',
+    letterSpacing: '0.5px',
+    textTransform: 'uppercase'
+  },
+  filterSelect: {
+    padding: '0.5rem',
+    fontSize: '13px',
+    fontWeight: '500',
+    border: '1px solid #CCCCCC',
+    borderRadius: '2px',
+    backgroundColor: '#FFFFFF',
+    minWidth: '150px',
+    outline: 'none'
+  },
+  clearButton: {
+    padding: '0.5rem 1rem',
+    backgroundColor: '#666666',
+    color: '#FFFFFF',
+    border: 'none',
+    borderRadius: '2px',
+    cursor: 'pointer',
+    fontSize: '11px',
+    fontWeight: '600',
+    letterSpacing: '0.5px',
+    height: 'fit-content'
   },
   statsContainer: {
     display: 'grid',
@@ -664,48 +1164,25 @@ const styles = {
     color: '#000000',
     textShadow: 'none'
   },
-  filtersBar: {
-    display: 'flex',
-    gap: '1rem',
-    padding: '1.5rem 2rem',
-    backgroundColor: '#F9F9F9',
-    borderBottom: '1px solid #EEEEEE',
-    flexWrap: 'wrap',
-    alignItems: 'flex-end'
-  },
-  filterGroup: {
+  comparisonContainer: {
+    flex: 1,
     display: 'flex',
     flexDirection: 'column',
-    gap: '0.25rem'
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: '3rem'
   },
-  filterLabel: {
-    fontSize: '10px',
-    fontWeight: '600',
+  comingSoon: {
+    fontSize: '24px',
+    fontWeight: '700',
     color: '#666666',
-    letterSpacing: '0.5px',
-    textTransform: 'uppercase'
+    marginBottom: '1rem'
   },
-  filterSelect: {
-    padding: '0.5rem',
-    fontSize: '13px',
-    fontWeight: '500',
-    border: '1px solid #CCCCCC',
-    borderRadius: '2px',
-    backgroundColor: '#FFFFFF',
-    minWidth: '150px',
-    outline: 'none'
-  },
-  clearButton: {
-    padding: '0.5rem 1rem',
-    backgroundColor: '#666666',
-    color: '#FFFFFF',
-    border: 'none',
-    borderRadius: '2px',
-    cursor: 'pointer',
-    fontSize: '11px',
-    fontWeight: '600',
-    letterSpacing: '0.5px',
-    height: 'fit-content'
+  comingSoonDesc: {
+    fontSize: '14px',
+    color: '#999999',
+    textAlign: 'center',
+    lineHeight: '1.8'
   },
   tableWrapper: {
     flex: 1,
@@ -870,6 +1347,74 @@ const styles = {
     borderTop: '1px solid #EEEEEE',
     fontSize: '12px',
     color: '#666666'
+  },
+  sectionTitle: {
+    fontSize: '18px',
+    fontWeight: '700',
+    color: '#000000',
+    marginBottom: '0.5rem'
+  },
+  sectionSubtitle: {
+    fontSize: '12px',
+    color: '#666666',
+    marginBottom: '1.5rem'
+  },
+  dashboardSection: {
+    padding: '2rem',
+    borderBottom: '1px solid #EEEEEE'
+  },
+  chartContainer: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '1.5rem'
+  },
+  chartRow: {
+    display: 'flex',
+    gap: '1rem',
+    alignItems: 'flex-start'
+  },
+  chartLabel: {
+    minWidth: '120px',
+    fontSize: '13px',
+    fontWeight: '600',
+    color: '#000000',
+    paddingTop: '0.25rem'
+  },
+  chartBars: {
+    flex: 1,
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '0.5rem'
+  },
+  comparisonBarRow: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '0.75rem'
+  },
+  comparisonBarLabel: {
+    fontSize: '11px',
+    fontWeight: '600',
+    color: '#666666',
+    minWidth: '70px'
+  },
+  barBackground: {
+    flex: 1,
+    backgroundColor: '#F5F5F5',
+    borderRadius: '2px',
+    height: '24px',
+    position: 'relative',
+    overflow: 'hidden'
+  },
+  barValue: {
+    fontSize: '12px',
+    fontWeight: '600',
+    color: '#000000',
+    minWidth: '120px',
+    textAlign: 'right'
+  },
+  varianceValue: {
+    fontSize: '12px',
+    fontWeight: '600'
   }
 };
 
