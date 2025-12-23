@@ -6,6 +6,7 @@ import {
 } from 'firebase/auth';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
 import { auth, db } from './config';
+import { syncUserToFirestore } from '../utils/syncUserToFirestore';
 
 // Create user with email and password
 export const createUser = async (email, password, role = 'manager') => {
@@ -74,9 +75,15 @@ export const getUserRole = async (uid) => {
   }
 };
 
-// Auth state observer
+// Auth state observer with automatic Firestore sync
 export const onAuthStateChange = (callback) => {
-  return onAuthStateChanged(auth, callback);
+  return onAuthStateChanged(auth, async (user) => {
+    if (user) {
+      // Automatically sync user to Firestore if document doesn't exist
+      await syncUserToFirestore(user);
+    }
+    callback(user);
+  });
 };
 
 

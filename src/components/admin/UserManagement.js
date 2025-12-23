@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { collection, getDocs, setDoc, updateDoc, deleteDoc, doc } from 'firebase/firestore';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { db, auth } from '../../firebase/config';
+import { syncUserToFirestore } from '../../utils/syncUserToFirestore';
 
 const UserManagement = () => {
   const [users, setUsers] = useState([]);
@@ -63,20 +64,17 @@ const UserManagement = () => {
         newUser.password
       );
 
-      const uid = userCredential.user.uid;
-
-      // Create user document in Firestore using UID as document ID
-      const userData = {
-        email: newUser.email.trim(),
-        role: newUser.role,
-        createdAt: new Date().toISOString()
+      // Prepare user data for Firestore
+      const firestoreData = {
+        role: newUser.role
       };
 
       if (newUser.assignedMarket) {
-        userData.assignedMarket = newUser.assignedMarket;
+        firestoreData.assignedMarket = newUser.assignedMarket;
       }
 
-      await setDoc(doc(db, 'users', uid), userData);
+      // Sync user to Firestore (automatically uses UID as document ID)
+      await syncUserToFirestore(userCredential.user, firestoreData);
 
       setSuccess('User created successfully');
       setNewUser({ email: '', password: '', role: '', assignedMarket: '' });

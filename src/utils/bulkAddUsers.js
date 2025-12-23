@@ -1,6 +1,7 @@
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { collection, doc, setDoc, query, where, getDocs } from 'firebase/firestore';
 import { auth, db } from '../firebase/config';
+import { syncUserToFirestore } from './syncUserToFirestore';
 
 const BULK_USERS = [
   { market: 'Botswana', email: 'botswana@test.co.za', username: 'Botswana', password: 'Speccon', role: 'marketAdmin' },
@@ -48,22 +49,19 @@ export const bulkAddUsers = async () => {
         userData.password
       );
 
-      const uid = userCredential.user.uid;
-
-      // Create user document in Firestore using UID as document ID
-      const userDoc = {
-        email: userData.email,
+      // Prepare user data for Firestore
+      const firestoreData = {
         username: userData.username,
-        role: userData.role || 'marketAdmin',
-        createdAt: new Date().toISOString()
+        role: userData.role || 'marketAdmin'
       };
 
       // Only add assignedMarket if it's not null (for market admins)
       if (userData.market) {
-        userDoc.assignedMarket = userData.market;
+        firestoreData.assignedMarket = userData.market;
       }
 
-      await setDoc(doc(db, 'users', uid), userDoc);
+      // Sync user to Firestore (this will create the document with UID as ID)
+      await syncUserToFirestore(userCredential.user, firestoreData);
 
       results.success.push({
         email: userData.email,

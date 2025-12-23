@@ -17,7 +17,8 @@
       "Bash(node scripts/readExcel.js:*)",
       "Bash(node scripts/clearAndImportActivities.js:*)",
       "Bash(node:*)",
-      "Bash(firebase firestore:indexes:*)"
+      "Bash(firebase firestore:indexes:*)",
+      "Bash(firebase firestore:get:*)"
     ],
     "deny": [],
     "ask": []
