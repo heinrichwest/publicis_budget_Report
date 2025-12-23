@@ -89,6 +89,25 @@ service cloud.firestore {
                     get(/databases/$(database)/documents/users/$(request.auth.uid)).data.assignedMarket == resource.data.market;
     }
 
+    // Actuals collection
+    match /actuals/{actualId} {
+      // Allow all authenticated users to read
+      allow read: if request.auth != null;
+
+      // Allow system admins to write any actual
+      allow write: if isSystemAdmin();
+
+      // Allow market admins to write actuals for their assigned market
+      allow create, update: if isMarketAdmin() &&
+                            exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+                            get(/databases/$(database)/documents/users/$(request.auth.uid)).data.assignedMarket == request.resource.data.market;
+
+      // Allow market admins to delete actuals for their assigned market
+      allow delete: if isMarketAdmin() &&
+                    exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+                    get(/databases/$(database)/documents/users/$(request.auth.uid)).data.assignedMarket == resource.data.market;
+    }
+
     // Default rule: deny all other access
     match /{document=**} {
       allow read, write: if false;

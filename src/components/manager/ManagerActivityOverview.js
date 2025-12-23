@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { collection, getDocs } from 'firebase/firestore';
 import { db } from '../../firebase/config';
 import { getCurrencySymbol } from '../../utils/currencyMap';
+import ManagerActualsView from './ManagerActualsView';
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
@@ -139,6 +140,15 @@ const ManagerActivityOverview = () => {
   const getStatistics = () => {
     const filtered = filteredActivities;
 
+    // Market stats
+    const marketTotals = {};
+    filtered.forEach(activity => {
+      const market = activity.market || 'Unknown';
+      const totalZAR = convertToZAR(calculateRowTotal(activity.monthlySpend), activity.market);
+      if (!marketTotals[market]) marketTotals[market] = 0;
+      marketTotals[market] += totalZAR;
+    });
+
     // Business Unit stats
     const businessUnitTotals = {};
     filtered.forEach(activity => {
@@ -167,6 +177,7 @@ const ManagerActivityOverview = () => {
     });
 
     return {
+      market: Object.entries(marketTotals).sort((a, b) => b[1] - a[1]),
       businessUnit: Object.entries(businessUnitTotals).sort((a, b) => b[1] - a[1]),
       campaign: Object.entries(campaignTotals).sort((a, b) => b[1] - a[1]).slice(0, 10),
       medium: Object.entries(mediumTotals).sort((a, b) => b[1] - a[1])
@@ -220,70 +231,125 @@ const ManagerActivityOverview = () => {
         >
           Activity Plan
         </button>
+        <button
+          onClick={() => setActiveTab('actuals')}
+          style={{
+            ...styles.tab,
+            ...(activeTab === 'actuals' ? styles.activeTab : {})
+          }}
+        >
+          Actuals
+        </button>
       </div>
 
       {error && <div style={styles.error}>{error}</div>}
 
       {/* Dashboard Tab */}
       {activeTab === 'dashboard' && (
-        <div style={styles.statsContainer}>
-        <div style={styles.statCard}>
-          <h3 style={styles.statTitle}>Business Unit (ZAR)</h3>
-          <div style={styles.barChartContainer}>
-            {statistics.businessUnit.map(([name, total]) => {
-              const maxTotal = Math.max(...statistics.businessUnit.map(([,t]) => t));
-              const percentage = (total / maxTotal) * 100;
-              return (
-                <div key={name} style={styles.barRow}>
-                  <div style={styles.barLabel}>{name}</div>
-                  <div style={styles.barWrapper}>
-                    <div style={{...styles.bar, width: `${percentage}%`}}></div>
-                    <div style={styles.barValue}>{formatNumber(total)}</div>
-                  </div>
-                </div>
-              );
-            })}
+        <>
+          {/* Dashboard Filter */}
+          <div style={styles.filtersBar}>
+            <div style={styles.filterGroup}>
+              <label style={styles.filterLabel}>Market</label>
+              <select
+                value={filters.market}
+                onChange={(e) => setFilters({ ...filters, market: e.target.value })}
+                style={styles.filterSelect}
+              >
+                <option value="">All Markets</option>
+                {markets.map(market => (
+                  <option key={market.id} value={market.name}>{market.name}</option>
+                ))}
+              </select>
+            </div>
+            {filters.market && (
+              <button
+                onClick={() => setFilters({ ...filters, market: '' })}
+                style={styles.clearButton}
+              >
+                CLEAR FILTER
+              </button>
+            )}
           </div>
-        </div>
 
-        <div style={styles.statCard}>
-          <h3 style={styles.statTitle}>Top 10 Campaigns (ZAR)</h3>
-          <div style={styles.barChartContainer}>
-            {statistics.campaign.map(([name, total]) => {
-              const maxTotal = Math.max(...statistics.campaign.map(([,t]) => t));
-              const percentage = (total / maxTotal) * 100;
-              return (
-                <div key={name} style={styles.barRow}>
-                  <div style={styles.barLabel}>{name}</div>
-                  <div style={styles.barWrapper}>
-                    <div style={{...styles.bar, width: `${percentage}%`}}></div>
-                    <div style={styles.barValue}>{formatNumber(total)}</div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
+          <div style={styles.statsContainer}>
+            <div style={styles.statCard}>
+              <h3 style={styles.statTitle}>Market (ZAR)</h3>
+              <div style={styles.barChartContainer}>
+                {statistics.market.map(([name, total]) => {
+                  const maxTotal = Math.max(...statistics.market.map(([,t]) => t));
+                  const percentage = (total / maxTotal) * 100;
+                  return (
+                    <div key={name} style={styles.barRow}>
+                      <div style={styles.barLabel}>{name}</div>
+                      <div style={styles.barWrapper}>
+                        <div style={{...styles.bar, width: `${percentage}%`}}></div>
+                        <div style={styles.barValue}>{formatNumber(total)}</div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
 
-        <div style={styles.statCard}>
-          <h3 style={styles.statTitle}>Medium (ZAR)</h3>
-          <div style={styles.barChartContainer}>
-            {statistics.medium.map(([name, total]) => {
-              const maxTotal = Math.max(...statistics.medium.map(([,t]) => t));
-              const percentage = (total / maxTotal) * 100;
-              return (
-                <div key={name} style={styles.barRow}>
-                  <div style={styles.barLabel}>{name}</div>
-                  <div style={styles.barWrapper}>
-                    <div style={{...styles.bar, width: `${percentage}%`}}></div>
-                    <div style={styles.barValue}>{formatNumber(total)}</div>
-                  </div>
-                </div>
-              );
-            })}
+            <div style={styles.statCard}>
+              <h3 style={styles.statTitle}>Business Unit (ZAR)</h3>
+              <div style={styles.barChartContainer}>
+                {statistics.businessUnit.map(([name, total]) => {
+                  const maxTotal = Math.max(...statistics.businessUnit.map(([,t]) => t));
+                  const percentage = (total / maxTotal) * 100;
+                  return (
+                    <div key={name} style={styles.barRow}>
+                      <div style={styles.barLabel}>{name}</div>
+                      <div style={styles.barWrapper}>
+                        <div style={{...styles.bar, width: `${percentage}%`}}></div>
+                        <div style={styles.barValue}>{formatNumber(total)}</div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div style={styles.statCard}>
+              <h3 style={styles.statTitle}>Top 10 Campaigns (ZAR)</h3>
+              <div style={styles.barChartContainer}>
+                {statistics.campaign.map(([name, total]) => {
+                  const maxTotal = Math.max(...statistics.campaign.map(([,t]) => t));
+                  const percentage = (total / maxTotal) * 100;
+                  return (
+                    <div key={name} style={styles.barRow}>
+                      <div style={styles.barLabel}>{name}</div>
+                      <div style={styles.barWrapper}>
+                        <div style={{...styles.bar, width: `${percentage}%`}}></div>
+                        <div style={styles.barValue}>{formatNumber(total)}</div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div style={styles.statCard}>
+              <h3 style={styles.statTitle}>Medium (ZAR)</h3>
+              <div style={styles.barChartContainer}>
+                {statistics.medium.map(([name, total]) => {
+                  const maxTotal = Math.max(...statistics.medium.map(([,t]) => t));
+                  const percentage = (total / maxTotal) * 100;
+                  return (
+                    <div key={name} style={styles.barRow}>
+                      <div style={styles.barLabel}>{name}</div>
+                      <div style={styles.barWrapper}>
+                        <div style={{...styles.bar, width: `${percentage}%`}}></div>
+                        <div style={styles.barValue}>{formatNumber(total)}</div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
           </div>
-        </div>
-        </div>
+        </>
       )}
 
       {/* Activity Plan Tab */}
@@ -429,6 +495,11 @@ const ManagerActivityOverview = () => {
             <p><strong>Note:</strong> Manager view is read-only. You cannot edit or delete activities.</p>
           </div>
         </>
+      )}
+
+      {/* Actuals Tab */}
+      {activeTab === 'actuals' && (
+        <ManagerActualsView />
       )}
     </div>
   );
@@ -590,8 +661,8 @@ const styles = {
     transform: 'translateY(-50%)',
     fontSize: '10px',
     fontWeight: '700',
-    color: '#FFFFFF',
-    textShadow: '0 0 2px rgba(0,0,0,0.5)'
+    color: '#000000',
+    textShadow: 'none'
   },
   filtersBar: {
     display: 'flex',

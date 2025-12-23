@@ -3,6 +3,7 @@ import { collection, getDocs, updateDoc, doc, addDoc, deleteDoc } from 'firebase
 import { db } from '../../firebase/config';
 import { useAuth } from '../../context/AuthContext';
 import { getCurrencySymbol } from '../../utils/currencyMap';
+import AdminActualsView from './AdminActualsView';
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
@@ -391,6 +392,15 @@ const AdminActivityPlanView = () => {
         >
           Activity Plan
         </button>
+        <button
+          onClick={() => setActiveTab('actuals')}
+          style={{
+            ...styles.tab,
+            ...(activeTab === 'actuals' ? styles.activeTab : {})
+          }}
+        >
+          Actuals
+        </button>
       </div>
 
       {error && <div style={styles.error}>{error}</div>}
@@ -707,6 +717,11 @@ const AdminActivityPlanView = () => {
             <p><strong>Instructions:</strong> Click on any month cell to edit the value. Press Enter to save or Escape to cancel.</p>
           </div>
         </>
+      )}
+
+      {/* Actuals Tab */}
+      {activeTab === 'actuals' && (
+        <AdminActualsView />
       )}
     </div>
   );

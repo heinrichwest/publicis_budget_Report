@@ -4,6 +4,7 @@ import { bulkAddUsers } from '../../utils/bulkAddUsers';
 import { importActivityData } from '../../utils/importActivityData';
 import { clearAndReimportActivities } from '../../utils/clearAndReimportActivities';
 import { fixUserDocuments } from '../../utils/fixUserDocuments';
+import { importActualsFromExcel } from '../../utils/importActualsData';
 import MarketsManager from './MarketsManager';
 import CurrencyRatesManager from './CurrencyRatesManager';
 import MediumsManager from './MediumsManager';
@@ -17,6 +18,7 @@ const AdminTabs = () => {
   const [importingData, setImportingData] = useState(false);
   const [clearingAndImporting, setClearingAndImporting] = useState(false);
   const [fixingUsers, setFixingUsers] = useState(false);
+  const [importingActuals, setImportingActuals] = useState(false);
 
   const handleInitialize = async () => {
     setInitializing(true);
@@ -129,6 +131,43 @@ const AdminTabs = () => {
     setFixingUsers(false);
   };
 
+  const handleImportActuals = async () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.xlsx,.xls';
+
+    input.onchange = async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      if (!window.confirm(`Import actuals from ${file.name}? This will clear all existing actuals.`)) {
+        return;
+      }
+
+      setImportingActuals(true);
+      try {
+        const result = await importActualsFromExcel(file);
+
+        if (result.success) {
+          let message = result.message + '\n\n';
+          message += 'Actuals by market:\n';
+          Object.entries(result.summary.byMarket).forEach(([market, count]) => {
+            message += `  ${market}: ${count} mediums\n`;
+          });
+          alert(message);
+        } else {
+          alert('Error importing actuals: ' + result.error);
+        }
+      } catch (error) {
+        alert('Error importing actuals: ' + error.message);
+        console.error('Import error:', error);
+      }
+      setImportingActuals(false);
+    };
+
+    input.click();
+  };
+
   const tabs = [
     { id: 'markets', label: 'Markets' },
     { id: 'rates', label: 'Currency Rates' },
@@ -155,6 +194,9 @@ const AdminTabs = () => {
           </button>
           <button onClick={handleFixUsers} disabled={fixingUsers} style={styles.fixUsersButton}>
             {fixingUsers ? 'FIXING USERS...' : 'FIX USER DOCUMENTS'}
+          </button>
+          <button onClick={handleImportActuals} disabled={importingActuals} style={styles.importButton}>
+            {importingActuals ? 'IMPORTING ACTUALS...' : 'IMPORT ACTUALS DATA'}
           </button>
         </div>
       </div>
