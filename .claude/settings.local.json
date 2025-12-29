@@ -19,7 +19,8 @@
       "Bash(node:*)",
       "Bash(firebase firestore:indexes:*)",
       "Bash(firebase firestore:get:*)",
-      "Bash(npm run build:*)"
+      "Bash(npm run build:*)",
+      "Bash(firebase login:*)"
     ],
     "deny": [],
     "ask": []

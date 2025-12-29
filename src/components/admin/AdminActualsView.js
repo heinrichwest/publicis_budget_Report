@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { collection, getDocs, query, where } from 'firebase/firestore';
+import { collection, getDocs, query, where, doc, updateDoc, addDoc } from 'firebase/firestore';
 import { db, auth } from '../../firebase/config';
 import { getCurrencySymbol } from '../../utils/currencyMap';
 
@@ -26,6 +26,10 @@ const AdminActualsView = () => {
   const [currencyRate, setCurrencyRate] = useState(1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [editingCell, setEditingCell] = useState(null); // { index, month, field }
+  const [editValue, setEditValue] = useState('');
+  const [hasChanges, setHasChanges] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -125,6 +129,93 @@ const AdminActualsView = () => {
     }, 0);
   };
 
+  // Cell editing handlers
+  const startEditing = (index, month, field, currentValue) => {
+    setEditingCell({ index, month, field });
+    setEditValue(currentValue?.toString() || '0');
+  };
+
+  const cancelEditing = () => {
+    setEditingCell(null);
+    setEditValue('');
+  };
+
+  const handleEditChange = (e) => {
+    setEditValue(e.target.value);
+  };
+
+  const saveEdit = () => {
+    if (!editingCell) return;
+
+    const { index, month, field } = editingCell;
+    const newValue = parseFloat(editValue) || 0;
+
+    // Update local state
+    setActuals(prevActuals =>
+      prevActuals.map((actual, i) => {
+        if (i === index) {
+          const updatedMonthlyActuals = { ...actual.monthlyActuals };
+          if (!updatedMonthlyActuals[month]) {
+            updatedMonthlyActuals[month] = { rateCard: 0, discount: 0, addedValue: 0 };
+          }
+          updatedMonthlyActuals[month] = {
+            ...updatedMonthlyActuals[month],
+            [field]: newValue
+          };
+          return { ...actual, monthlyActuals: updatedMonthlyActuals };
+        }
+        return actual;
+      })
+    );
+
+    setHasChanges(true);
+    setEditingCell(null);
+    setEditValue('');
+  };
+
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter') {
+      saveEdit();
+    } else if (e.key === 'Escape') {
+      cancelEditing();
+    }
+  };
+
+  const saveAllChanges = async () => {
+    setSaving(true);
+    setError('');
+
+    try {
+      // Save all actuals to Firestore
+      const updatePromises = actuals.map(async (actual) => {
+        if (actual.id) {
+          // Update existing document
+          const actualRef = doc(db, 'actuals', actual.id);
+          return updateDoc(actualRef, {
+            monthlyActuals: actual.monthlyActuals
+          });
+        } else {
+          // Create new document for this medium
+          return addDoc(collection(db, 'actuals'), {
+            market: userMarket,
+            medium: actual.medium,
+            monthlyActuals: actual.monthlyActuals
+          });
+        }
+      });
+
+      await Promise.all(updatePromises);
+      setHasChanges(false);
+
+      // Reload data to get the new IDs
+      await loadData();
+      alert('All changes saved successfully!');
+    } catch (err) {
+      setError('Error saving changes: ' + err.message);
+    }
+    setSaving(false);
+  };
+
   const currencySymbol = getCurrencySymbol(userMarket);
 
   if (loading) {
@@ -136,6 +227,15 @@ const AdminActualsView = () => {
       {/* Header */}
       <div style={styles.header}>
         <h2 style={styles.title}>{userMarket} - Actuals</h2>
+        {hasChanges && (
+          <button
+            onClick={saveAllChanges}
+            disabled={saving}
+            style={styles.saveButton}
+          >
+            {saving ? 'SAVING...' : 'SAVE ALL CHANGES'}
+          </button>
+        )}
       </div>
 
       {error && <div style={styles.error}>{error}</div>}
@@ -196,7 +296,7 @@ const AdminActualsView = () => {
                   <td style={styles.tdTotal}>{totalAVPerc.toFixed(2)}%</td>
                   <td style={{...styles.tdTotal, borderRight: '2px solid #DDDDDD'}}>{formatNumber(totalNettZAR)}</td>
 
-                  {/* Monthly columns */}
+                  {/* Monthly columns - Editable */}
                   {MONTHS.map((month, monthIndex) => {
                     const monthData = actual.monthlyActuals?.[month] || { rateCard: 0, discount: 0, addedValue: 0 };
                     const rateCard = parseFloat(monthData.rateCard) || 0;
@@ -206,13 +306,65 @@ const AdminActualsView = () => {
                     const discPerc = rateCard > 0 ? (discount / rateCard) * 100 : 0;
                     const avPerc = rateCard > 0 ? (addedValue / rateCard) * 100 : 0;
 
+                    const isEditingRateCard = editingCell?.index === index && editingCell?.month === month && editingCell?.field === 'rateCard';
+                    const isEditingDiscount = editingCell?.index === index && editingCell?.month === month && editingCell?.field === 'discount';
+                    const isEditingAddedValue = editingCell?.index === index && editingCell?.month === month && editingCell?.field === 'addedValue';
+
                     return (
                       <React.Fragment key={month}>
-                        <td style={styles.td}>{formatNumber(rateCard)}</td>
-                        <td style={styles.td}>{formatNumber(discount)}</td>
+                        {/* Rate Card - Editable */}
+                        <td style={styles.tdEditable} onClick={() => !isEditingRateCard && startEditing(index, month, 'rateCard', rateCard)}>
+                          {isEditingRateCard ? (
+                            <input
+                              type="number"
+                              value={editValue}
+                              onChange={handleEditChange}
+                              onBlur={saveEdit}
+                              onKeyDown={handleKeyDown}
+                              style={styles.editInput}
+                              autoFocus
+                            />
+                          ) : (
+                            formatNumber(rateCard)
+                          )}
+                        </td>
+                        {/* Discount - Editable */}
+                        <td style={styles.tdEditable} onClick={() => !isEditingDiscount && startEditing(index, month, 'discount', discount)}>
+                          {isEditingDiscount ? (
+                            <input
+                              type="number"
+                              value={editValue}
+                              onChange={handleEditChange}
+                              onBlur={saveEdit}
+                              onKeyDown={handleKeyDown}
+                              style={styles.editInput}
+                              autoFocus
+                            />
+                          ) : (
+                            formatNumber(discount)
+                          )}
+                        </td>
+                        {/* Disc % - Calculated */}
                         <td style={styles.td}>{discPerc.toFixed(2)}%</td>
+                        {/* Nett - Calculated */}
                         <td style={styles.td}>{formatNumber(nett)}</td>
-                        <td style={styles.td}>{formatNumber(addedValue)}</td>
+                        {/* Added Value - Editable */}
+                        <td style={styles.tdEditable} onClick={() => !isEditingAddedValue && startEditing(index, month, 'addedValue', addedValue)}>
+                          {isEditingAddedValue ? (
+                            <input
+                              type="number"
+                              value={editValue}
+                              onChange={handleEditChange}
+                              onBlur={saveEdit}
+                              onKeyDown={handleKeyDown}
+                              style={styles.editInput}
+                              autoFocus
+                            />
+                          ) : (
+                            formatNumber(addedValue)
+                          )}
+                        </td>
+                        {/* AV % - Calculated */}
                         <td style={{...styles.td, borderRight: monthIndex === 11 ? '1px solid #EEEEEE' : '2px solid #DDDDDD'}}>{avPerc.toFixed(2)}%</td>
                       </React.Fragment>
                     );
@@ -282,7 +434,7 @@ const AdminActualsView = () => {
       </div>
 
       <div style={styles.instructions}>
-        <p><strong>Note:</strong> Actuals are imported from Excel files and cannot be edited directly. Use the Import Actuals Data button to update values.</p>
+        <p><strong>Tip:</strong> Click on Rate Card, Discount, or Added Value cells to edit. Press Enter to save or Escape to cancel. {hasChanges && <span style={{color: '#DC2626', fontWeight: '600'}}>You have unsaved changes!</span>}</p>
       </div>
     </div>
   );
@@ -458,6 +610,40 @@ const styles = {
     borderTop: '1px solid #EEEEEE',
     fontSize: '12px',
     color: '#666666'
+  },
+  saveButton: {
+    padding: '0.5rem 1.5rem',
+    backgroundColor: '#10B981',
+    color: '#FFFFFF',
+    border: 'none',
+    borderRadius: '2px',
+    cursor: 'pointer',
+    fontSize: '11px',
+    fontWeight: '700',
+    letterSpacing: '0.5px',
+    transition: 'background-color 0.2s'
+  },
+  tdEditable: {
+    padding: '0.5rem',
+    textAlign: 'right',
+    borderRight: '1px solid #EEEEEE',
+    borderBottom: '1px solid #EEEEEE',
+    minWidth: '90px',
+    fontSize: '12px',
+    cursor: 'pointer',
+    backgroundColor: '#FFFEF0',
+    transition: 'background-color 0.2s'
+  },
+  editInput: {
+    width: '100%',
+    padding: '0.25rem',
+    fontSize: '12px',
+    fontWeight: '500',
+    border: '2px solid #10B981',
+    borderRadius: '2px',
+    textAlign: 'right',
+    outline: 'none',
+    backgroundColor: '#FFFFFF'
   }
 };
 
